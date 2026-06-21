@@ -18,7 +18,7 @@ def limpar_nome_arquivo(nome):
     return re.sub(r'[\\/*?:"<>|]', "", nome).strip()
 
 def obter_caminho_onedrive():
-    base_onedrive = r"C:\Users\Note Acer Aspire 5\OneDrive\Status de Comunicação"
+    base_onedrive = r"C:\Users\cristian.souza\OneDrive - Nossa Senhora do Ó Participações S.A\Status de Comunicação em Python"
     agora = datetime.now()
     ano = agora.strftime("%Y")
     mes = agora.strftime("%m-%Y")

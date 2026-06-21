@@ -6,7 +6,7 @@ import subprocess
 from datetime import datetime
 
 def processar_planilhas_consolidadas():
-    base_onedrive = r"C:\Users\Note Acer Aspire 5\OneDrive\Status de Comunicação"
+    base_onedrive = r"C:\Users\cristian.souza\OneDrive - Nossa Senhora do Ó Participações S.A\Status de Comunicação em Python"
     pasta_web = r"C:\Projetos em Python\Status de Comunicação\web"
     
     agora = datetime.now()
