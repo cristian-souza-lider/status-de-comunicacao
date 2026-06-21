@@ -6,14 +6,15 @@ import subprocess
 from datetime import datetime
 
 def processar_planilhas_consolidadas():
+    # Caminhos de diretórios padrão do projeto
     base_onedrive = r"C:\Users\Note Acer Aspire 5\OneDrive\Status de Comunicação"
-    pasta_web = r"C:\Projetos em Python\Status de Comunicação"
+    pasta_web = r"C:\Projetos em Python\Status de Comunicação\web"
     
     agora = datetime.now()
     ano = agora.strftime("%Y")
     mes = agora.strftime("%m-%Y") # Pasta do mês atual (ex: 06-2026)
     
-    # Aponta para a pasta do mês inteiro, em vez de focar apenas no dia atual
+    # Aponta para a pasta do mês inteiro, consolidando o histórico acumulado
     pasta_mes_atual = os.path.join(base_onedrive, ano, mes)
     
     if not os.path.exists(pasta_mes_atual):
@@ -88,6 +89,7 @@ def processar_planilhas_consolidadas():
             if pd.isna(valor):
                 registro[chave] = None  
                 
+    # Garante a existência do diretório web e salva o JSON rigorosamente dentro de web/dados.json
     os.makedirs(pasta_web, exist_ok=True)
     caminho_json = os.path.join(pasta_web, "dados.json")
     with open(caminho_json, "w", encoding="utf-8") as f:
