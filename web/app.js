@@ -48,6 +48,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-limpar-filtros').addEventListener('click', limparFiltros);
     document.getElementById('input-linhas-pagina').addEventListener('input', mudarLinhasPorPagina);
     document.getElementById('btn-tema').addEventListener('click', alternarTema);
+    document.getElementById('btn-fullscreen').addEventListener('click', alternarFullscreen);
+    document.addEventListener('fullscreenchange', sincronizarIconeFullscreen);
 
     // Eventos de mudança nos filtros
     const filtrosId = [
@@ -701,6 +703,28 @@ function atualizarGraficos() {
         });
         return counts;
     };
+
+    // Ativa ou desativa o modo Tela Cheia nativo do navegador
+function alternarFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen()
+            .catch(err => {
+                console.error(`Erro ao tentar ativar tela cheia: ${err.message}`);
+            });
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+// Garante que o ícone mude se a tela cheia for ativada pelo botão ou desativada via tecla ESC
+function sincronizarIconeFullscreen() {
+    const icon = document.getElementById('icon-fullscreen');
+    if (document.fullscreenElement) {
+        icon.className = 'fa-solid fa-compress text-sm';
+    } else {
+        icon.className = 'fa-solid fa-expand text-sm';
+    }
+}
 
     const countEmpresa = agruparEContar('_empresaGrupo');
     const countSegmento = agruparEContar('_segmento', true);
