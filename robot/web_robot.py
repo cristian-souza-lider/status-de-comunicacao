@@ -5,6 +5,8 @@ import glob
 import shutil
 from datetime import datetime
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -148,27 +150,29 @@ def executar_robot():
 
     chrome_options = webdriver.ChromeOptions()
     
-    # ARGUMENTOS DE ESTABILIDADE E SEGURANÇA CORPORATIVA (Evitam travamento na tela branca)
+    # ARGUMENTOS DE SEGURANÇA E COMUNICAÇÃO CORPORATIVA
+    chrome_options.add_argument("--remote-allow-origins=*") # <- A SOLUÇÃO: Libera a comunicação de rede bloqueada
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--ignore-certificate-errors")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--disable-software-rasterizer")
     
     prefs = {
         "download.default_directory": temp_download_dir,
         "download.prompt_for_download": False,
         "download.directory_upgrade": True,
-        "safebrowsing.enabled": False,  
+        "safebrowsing.enabled": False,
         "profile.default_content_setting_values.automatic_downloads": 1
     }
     chrome_options.add_experimental_option("prefs", prefs)
 
-    # INICIALIZAÇÃO NATIVA DO SELENIUM 4 (Sem precisar de webdriver-manager ou Service)
-    # Muito mais imune a bloqueios de rede/firewall corporativos
-    driver = webdriver.Chrome(options=chrome_options)
+    # Inicia o serviço forçando a liberação das portas locais
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.maximize_window()
     
     try:
-        # Abre o site
+        # Abertura do site
         driver.get("https://gool.cittati.com.br/Login.aspx?ReturnUrl=%2f")
         
         # 1º Passo: Clicar no ícone Urbano
