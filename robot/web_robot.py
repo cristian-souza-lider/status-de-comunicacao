@@ -5,6 +5,7 @@ import glob
 import shutil
 from datetime import datetime
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -164,9 +165,9 @@ def executar_robot():
     }
     chrome_options.add_experimental_option("prefs", prefs)
 
-    # INICIALIZAÇÃO 100% NATIVA DO SELENIUM 4
-    # Ele baixará e usará o ChromeDriver exato da versão 149 de forma automática
-    driver = webdriver.Chrome(options=chrome_options)
+    service = Service()
+    service.hostname = "127.0.0.1"
+    driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.maximize_window()
     
     try:
