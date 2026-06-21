@@ -38,7 +38,7 @@ const segmentosEmpresa = {
     ]
 };
 
-// Inicialização da Página
+// Inicialização da Página (DOMContentLoaded)
 document.addEventListener('DOMContentLoaded', () => {
     inicializarTema();
     carregarDados();
@@ -49,7 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('input-linhas-pagina').addEventListener('input', mudarLinhasPorPagina);
     document.getElementById('btn-tema').addEventListener('click', alternarTema);
     document.getElementById('btn-fullscreen').addEventListener('click', alternarFullscreen);
-    document.addEventListener('fullscreenchange', sincronizarIconeFullscreen);
 
     // Eventos de mudança nos filtros
     const filtrosId = [
@@ -75,6 +74,12 @@ document.addEventListener('DOMContentLoaded', () => {
             ordenarTabelaPor(th.getAttribute('data-sort'));
         });
     });
+});
+
+// Registra escutas de evento de mudança de tela cheia para todos os navegadores
+const eventosFullscreen = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'];
+eventosFullscreen.forEach(evento => {
+    document.addEventListener(evento, sincronizarIconeFullscreen);
 });
 
 // Inicialização de Tema (Salvo em cache)
@@ -109,6 +114,52 @@ function alternarTema() {
     atualizarGraficos();
 }
 
+// Ativa ou desativa o modo Tela Cheia com suporte a múltiplos navegadores
+function alternarFullscreen() {
+    const docEl = document.documentElement;
+    const isFullscreen = document.fullscreenElement || 
+                         document.webkitFullscreenElement || 
+                         document.mozFullScreenElement || 
+                         document.msFullscreenElement;
+
+    if (!isFullscreen) {
+        const requestFS = docEl.requestFullscreen || 
+                          docEl.webkitRequestFullscreen || 
+                          docEl.mozRequestFullScreen || 
+                          docEl.msRequestFullscreen;
+        if (requestFS) {
+            requestFS.call(docEl).catch(err => {
+                console.error(`Erro ao ativar tela cheia: ${err.message}`);
+            });
+        }
+    } else {
+        const exitFS = document.exitFullscreen || 
+                       document.webkitExitFullscreen || 
+                       document.mozCancelFullScreen || 
+                       document.msExitFullscreen;
+        if (exitFS) {
+            exitFS.call(document);
+        }
+    }
+}
+
+// Sincroniza o ícone de expansão/compressão em múltiplos navegadores
+function sincronizarIconeFullscreen() {
+    const icon = document.getElementById('icon-fullscreen');
+    if (!icon) return;
+    
+    const isFullscreen = document.fullscreenElement || 
+                         document.webkitFullscreenElement || 
+                         document.mozFullScreenElement || 
+                         document.msFullscreenElement;
+                         
+    if (isFullscreen) {
+        icon.className = 'fa-solid fa-compress text-sm';
+    } else {
+        icon.className = 'fa-solid fa-expand text-sm';
+    }
+}
+
 // Busca as informações do dados.json
 function carregarDados() {
     const btn = document.getElementById('btn-atualizar');
@@ -126,7 +177,7 @@ function carregarDados() {
             dadosOriginais = dados;
             processarDadosGerais();
             preencherOpcoesFiltros();
-            configurarFiltrosIniciais(); // Seleciona automaticamente o horário cumulativo mais recente
+            configurarFiltrosIniciais(); 
             aplicarFiltros();
             
             const agora = new Date();
@@ -146,8 +197,8 @@ function carregarDados() {
 // Higieniza e padroniza as colunas de dados
 function processarDadosGerais() {
     let maiorDataObj = null;
-    let dataReferenciaStr = "20/06/2026"; 
-    let horaReferenciaStr = "15:00";
+    let dataReferenciaStr = "21/06/2026"; 
+    let horaReferenciaStr = "12:00";
 
     dadosOriginais.forEach(item => {
         const campoData = item["Última Transmissão"] || item["Último GPS"];
@@ -196,7 +247,6 @@ function processarDadosGerais() {
 
         const condicao = (linhaOriginal && linhaOriginal !== "null") ? "Escalado" : "Sem Escala";
 
-        // Mapeamento e Higienização Estrita das 5 Não Conformidades Oficiais
         const ncOriginal = item["Não Conformidade"];
         let ncLimpa = "";
         if (ncOriginal && ncOriginal !== "null" && ncOriginal !== "") {
@@ -214,7 +264,6 @@ function processarDadosGerais() {
             } else if (t.includes("carga de ponto") || t.includes("problema de carga")) {
                 ncLimpa = "Problema de Carga de Ponto";
             } else {
-                // Fallback de limpeza genérica se houver algum outro texto
                 let limpo = ncOriginal.replace(/^Ve[íi]culo\s+/i, "");
                 limpo = limpo.replace(/\s+\d+h\d+min.*$/i, "");
                 limpo = limpo.replace(/\s+\d+h.*$/i, "");
@@ -264,7 +313,7 @@ function processarDadosGerais() {
     });
 }
 
-// Popula os dropdowns dos filtros
+// Popula os selects dos filtros
 function preencherOpcoesFiltros() {
     const carregarOpcaoUnica = (id, campo) => {
         const select = document.getElementById(id);
@@ -297,12 +346,11 @@ function preencherOpcoesFiltros() {
     atualizarOpcoesSegmento();
 }
 
-// Configura dinamicamente a data e a hora mais recentes como filtros iniciais padrão no carregamento
+// Configura filtros iniciais automáticos baseados nas pastas acumuladas
 function configurarFiltrosIniciais() {
     const selectData = document.getElementById('filtro-data');
     const opcoesData = Array.from(selectData.options).map(o => o.value).filter(Boolean);
     if (opcoesData.length > 0) {
-        // Seleciona a data mais recente
         selectData.value = opcoesData[opcoesData.length - 1];
     }
 
@@ -311,13 +359,11 @@ function configurarFiltrosIniciais() {
     const selectHora = document.getElementById('filtro-hora');
     const opcoesHora = Array.from(selectHora.options).map(o => o.value).filter(Boolean);
     if (opcoesHora.length > 0) {
-        // Ordena numericamente as pastas de horas (ex: 16h, 17h, 18h, 19h, 20h)
         opcoesHora.sort((a, b) => {
             const numA = parseInt(a.replace('h', ''));
             const numB = parseInt(b.replace('h', ''));
             return numA - numB;
         });
-        // Seleciona o horário mais recente
         selectHora.value = opcoesHora[opcoesHora.length - 1];
     }
 }
@@ -356,7 +402,7 @@ function limparFiltros() {
     document.getElementById('filtro-hora').value = "";
     document.getElementById('filtro-empresa').value = "";
     document.getElementById('filtro-segmento').value = "";
-    document.getElementById('filtro-linha').value = ""; // Input de texto
+    document.getElementById('filtro-linha').value = ""; 
     document.getElementById('filtro-veiculo').value = "";
     document.getElementById('filtro-condicao').value = "";
     document.getElementById('filtro-situacao').value = "";
@@ -413,7 +459,7 @@ function aplicarFiltros() {
     paginaAtual = 1;
     colunaOrdenada = ''; 
     atualizarKPIs();
-    atualizarMiniCards(); // <-- ADICIONE ESTA LINHA AQUI
+    atualizarMiniCards();
     renderizarTabela();
     atualizarGraficos();
 }
@@ -495,66 +541,6 @@ function atualizarKPIs() {
     document.querySelectorAll('#kpi-gps-invalido').forEach(el => el.textContent = gpsInvalido.toLocaleString('pt-BR'));
 }
 
-// Gera dinamicamente os mini-cartões com as 5 Não Conformidades oficiais fixas
-function atualizarMiniCards() {
-    const container = document.getElementById('container-mini-cards');
-    if (!container) return;
-
-    // Inicialização fixa das 5 não conformidades oficiais com 0
-    const contagens = {
-        "Sem Transmissão": 0,
-        "Sem GPS Válido": 0,
-        "Sem AVL": 0,
-        "Sem Processar Pontos de Controle": 0,
-        "Problema de Carga de Ponto": 0
-    };
-
-    // Incrementa as contagens baseadas nos dados filtrados ativos na tela
-    dadosFiltrados.forEach(item => {
-        const nc = item._naoConformidadeLimpa;
-        if (nc && nc !== "") {
-            // Caso seja uma não conformidade extra dinâmica, cria a chave em tempo de execução
-            contagens[nc] = (contagens[nc] || 0) + 1;
-        }
-    });
-
-    // Título interno da seção de ocorrências
-    container.innerHTML = '<span class="text-slate-500 dark:text-slate-400 uppercase text-[9px] font-black mr-2 tracking-wider flex-shrink-0">Ocorrências Ativas:</span>';
-
-    // Cria as tags estruturadas com cores exclusivas para cada um dos 5 tipos
-    Object.entries(contagens).forEach(([nome, qtd]) => {
-        let corClasse = "";
-        
-        switch (nome) {
-            case "Sem Transmissão":
-                corClasse = "bg-white dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-900"; // Vermelho
-                break;
-            case "Sem GPS Válido":
-                corClasse = "bg-white dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-900"; // Amarelo
-                break;
-            case "Sem AVL":
-                corClasse = "bg-white dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-900"; // Indigo/Azul
-                break;
-            case "Sem Processar Pontos de Controle":
-                corClasse = "bg-white dark:bg-purple-950/20 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-900"; // Roxo
-                break;
-            case "Problema de Carga de Ponto":
-                corClasse = "bg-white dark:bg-teal-950/20 text-teal-700 dark:text-teal-400 border-teal-300 dark:border-teal-900"; // Ciano/Verde
-                break;
-            default:
-                corClasse = "bg-white dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700"; // Outros genéricos
-        }
-
-        const cardHtml = `
-            <div class="flex items-center gap-1.5 px-2.5 py-0.5 rounded border ${corClasse} text-[11px] font-extrabold shadow-sm transition-all duration-150">
-                <span>${nome}:</span>
-                <span class="font-black text-xs">${qtd}</span>
-            </div>
-        `;
-        container.innerHTML += cardHtml;
-    });
-}
-
 // Renderiza Linhas da Tabela Otimizada e Centralizada
 function renderizarTabela() {
     const corpo = document.getElementById('corpo-tabela');
@@ -573,7 +559,7 @@ function renderizarTabela() {
         corpo.innerHTML = '<tr><td colspan="12" class="p-6 text-center text-slate-500 font-medium bg-white dark:bg-slate-800">Nenhum registro encontrado para os filtros selecionados.</td></tr>';
         document.getElementById('txt-total-registros').textContent = 'Exibindo 0 de 0 registros';
         document.getElementById('txt-pag-atual').textContent = 'Pág. 1 de 1';
-        document.getElementById('pag-anterior').disabled = true;
+        document.getElementById('pag-anterior').disabled = true; 
         document.getElementById('pag-proximo').disabled = true;
         return;
     }
@@ -582,7 +568,6 @@ function renderizarTabela() {
         const tr = document.createElement('tr');
         tr.className = "border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800";
 
-        // Ajuste: Retirado o fundo cinza escuro de Situação na exibição (fundo branco puro no tema claro)
         const badgeSituacao = item.Situação === "Operando" 
             ? '<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-white dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-900">Operando</span>'
             : '<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-white dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-400 dark:border-amber-900">Em Manutenção</span>';
@@ -593,7 +578,6 @@ function renderizarTabela() {
 
         const textLinha = item._linhaPrefixo ? `<span class="font-mono bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded font-bold text-slate-700 dark:text-slate-200">${item._linhaPrefixo}</span>` : '<span class="text-slate-400 italic">Sem Escala</span>';
 
-        // Ficha de Manutenção (Persistência no LocalStorage de acordo com Veículo + Data)
         const keyFicha = `ficha_${item._veiculoFormatado}_${item._dataExportacao}`;
         const estadoFicha = localStorage.getItem(keyFicha) || '';
         
@@ -642,13 +626,14 @@ function renderizarTabela() {
             }
             // Sincroniza e redesenha os dados no KPI e na Tabela simultaneamente
             atualizarKPIs();
+            atualizarMiniCards();
             renderizarTabela(); 
         });
     });
 
     document.getElementById('txt-total-registros').textContent = `Exibindo ${inicio + 1} a ${fim} de ${totalRegistros} registros`;
     document.getElementById('txt-pag-atual').textContent = `Pág. ${paginaAtual} de ${totalPaginas}`;
-    document.getElementById('pag-anterior').disabled = true; // Os controles nativos cuidam da paginação
+    document.getElementById('pag-anterior').disabled = true; 
     document.getElementById('pag-proximo').disabled = true;
     if (paginaAtual > 1) document.getElementById('pag-anterior').disabled = false;
     if (paginaAtual < totalPaginas) document.getElementById('pag-proximo').disabled = false;
@@ -690,6 +675,65 @@ function normalizarNomeCategoria(nome) {
         .trim();
 }
 
+// Gera dinamicamente os mini-cartões com as 5 Não Conformidades oficiais fixas no topo da tabela
+function atualizarMiniCards() {
+    const container = document.getElementById('container-mini-cards');
+    if (!container) return;
+
+    // Inicialização fixa das 5 não conformidades oficiais com 0
+    const contagens = {
+        "Sem Transmissão": 0,
+        "Sem GPS Válido": 0,
+        "Sem AVL": 0,
+        "Sem Processar Pontos de Controle": 0,
+        "Problema de Carga de Ponto": 0
+    };
+
+    // Incrementa as contagens baseadas nos dados filtrados ativos na tela
+    dadosFiltrados.forEach(item => {
+        const nc = item._naoConformidadeLimpa;
+        if (nc && nc !== "") {
+            contagens[nc] = (contagens[nc] || 0) + 1;
+        }
+    });
+
+    // Título interno da seção de ocorrências
+    container.innerHTML = '<span class="text-slate-500 dark:text-slate-400 uppercase text-[9px] font-black mr-2 tracking-wider flex-shrink-0">Ocorrências Ativas:</span>';
+
+    // Cria as tags estruturadas com cores exclusivas para cada um dos 5 tipos
+    Object.entries(contagens).forEach(([nome, qtd]) => {
+        let corClasse = "";
+        
+        switch (nome) {
+            case "Sem Transmissão":
+                corClasse = "bg-white dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-900"; // Vermelho
+                break;
+            case "Sem GPS Válido":
+                corClasse = "bg-white dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-900"; // Amarelo
+                break;
+            case "Sem AVL":
+                corClasse = "bg-white dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-900"; // Indigo/Azul
+                break;
+            case "Sem Processar Pontos de Controle":
+                corClasse = "bg-white dark:bg-purple-950/20 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-900"; // Roxo
+                break;
+            case "Problema de Carga de Ponto":
+                corClasse = "bg-white dark:bg-teal-950/20 text-teal-700 dark:text-teal-400 border-teal-300 dark:border-teal-900"; // Ciano/Verde
+                break;
+            default:
+                corClasse = "bg-white dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700"; 
+        }
+
+        const cardHtml = `
+            <div class="flex items-center gap-1.5 px-2.5 py-0.5 rounded border ${corClasse} text-[11px] font-extrabold shadow-sm transition-all duration-150">
+                <span>${nome}:</span>
+                <span class="font-black text-xs">${qtd}</span>
+            </div>
+        `;
+        container.innerHTML += cardHtml;
+    });
+}
+
 // Desenha os gráficos (Todos em barra horizontal, exceto Faixa Horária que é linha)
 function atualizarGraficos() {
     const dadosNC = dadosFiltrados.filter(d => d._naoConformidadeLimpa && d._naoConformidadeLimpa !== "");
@@ -703,58 +747,6 @@ function atualizarGraficos() {
         });
         return counts;
     };
-
-// Ativa ou desativa o modo Tela Cheia com suporte a múltiplos navegadores
-function alternarFullscreen() {
-    const docEl = document.documentElement;
-    const isFullscreen = document.fullscreenElement || 
-                         document.webkitFullscreenElement || 
-                         document.mozFullScreenElement || 
-                         document.msFullscreenElement;
-
-    if (!isFullscreen) {
-        const requestFS = docEl.requestFullscreen || 
-                          docEl.webkitRequestFullscreen || 
-                          docEl.mozRequestFullScreen || 
-                          docEl.msRequestFullscreen;
-        if (requestFS) {
-            requestFS.call(docEl).catch(err => {
-                console.error(`Erro ao ativar tela cheia: ${err.message}`);
-            });
-        }
-    } else {
-        const exitFS = document.exitFullscreen || 
-                       document.webkitExitFullscreen || 
-                       document.mozCancelFullScreen || 
-                       document.msExitFullscreen;
-        if (exitFS) {
-            exitFS.call(document);
-        }
-    }
-}
-
-// Sincroniza o ícone de expansão/compressão em múltiplos navegadores
-function sincronizarIconeFullscreen() {
-    const icon = document.getElementById('icon-fullscreen');
-    if (!icon) return;
-    
-    const isFullscreen = document.fullscreenElement || 
-                         document.webkitFullscreenElement || 
-                         document.mozFullScreenElement || 
-                         document.msFullscreenElement;
-                         
-    if (isFullscreen) {
-        icon.className = 'fa-solid fa-compress text-sm';
-    } else {
-        icon.className = 'fa-solid fa-expand text-sm';
-    }
-}
-
-// Registra escutas de evento de mudança de tela cheia para todos os navegadores
-const eventosFullscreen = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'];
-eventosFullscreen.forEach(evento => {
-    document.addEventListener(evento, sincronizarIconeFullscreen);
-});
 
     const countEmpresa = agruparEContar('_empresaGrupo');
     const countSegmento = agruparEContar('_segmento', true);
@@ -812,7 +804,7 @@ eventosFullscreen.forEach(evento => {
                 layout: {
                     padding: {
                         left: 10,
-                        right: 25 // Espaço extra à direita para o rótulo de dados externo não cortar
+                        right: 25 // Espaço extra à direita para o rótulo de dados interno não cortar
                     }
                 },
                 plugins: { 
