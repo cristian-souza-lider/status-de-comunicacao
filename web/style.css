@@ -111,6 +111,12 @@ body:not(.dark) #tabela-analise tbody tr:hover td {
     background-color: #f8fafc !important; /* Hover sutil muito claro */
 }
 
+/* Força o fundo branco absoluto para o contêiner de Ocorrências Ativas no Tema Claro */
+body:not(.dark) #container-mini-cards {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+}
+
 /* Força o fundo branco e texto preto de alto contraste no rodapé de paginação */
 body:not(.dark) #tabela-analise + div,
 body:not(.dark) .p-3.border-t.flex {
@@ -119,23 +125,30 @@ body:not(.dark) .p-3.border-t.flex {
     border-color: #cbd5e1 !important;
 }
 
+/* Força o topo de registros da tabela ("Registros de Status") a ser fundo branco no tema claro */
+body:not(.dark) .card-container > div:first-child {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+}
+
+/* Força o texto "Exibir" e "linhas por página" a ficar preto puro no Tema Claro */
+body:not(.dark) .p-4.border-b.flex span,
+body:not(.dark) .p-3.border-t.flex span {
+    color: #000000 !important;
+    font-weight: 800 !important;
+}
+
 body:not(.dark) #txt-total-registros,
 body:not(.dark) #txt-pag-atual {
-    color: #0f172a !important; 
+    color: #000000 !important; 
     font-weight: 800 !important;
 }
 
 body:not(.dark) #pag-anterior,
 body:not(.dark) #pag-proximo {
-    color: #0f172a !important;
+    color: #000000 !important;
     border-color: #94a3b8 !important;
     background-color: #ffffff !important;
-}
-
-/* Força o topo de registros da tabela ("Registros de Status") a ser fundo branco no tema claro */
-body:not(.dark) .card-container > div:first-child {
-    background-color: #ffffff !important;
-    border-color: #e2e8f0 !important;
 }
 
 /* --- ESTILOS DO TEMA ESCURO (DARK MODE) --- */
@@ -193,6 +206,22 @@ body.dark #tabela-analise td {
     color: #cbd5e1;
 }
 
+/* Força os textos de paginação e controles superiores a ficarem em branco nítido no Tema Escuro */
+body.dark .p-4.border-b.flex span,
+body.dark .p-3.border-t.flex span,
+body.dark #txt-total-registros,
+body.dark #txt-pag-atual {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+}
+
+body.dark #pag-anterior,
+body.dark #pag-proximo {
+    color: #ffffff !important;
+    border-color: #374151 !important;
+    background-color: #1f2937 !important;
+}
+
 .rotate-anim {
     animation: rotation 1s infinite linear;
 }
@@ -200,10 +229,4 @@ body.dark #tabela-analise td {
 @keyframes rotation {
     from { transform: rotate(0deg); }
     to { transform: rotate(359deg); }
-}
-
-/* Forçar texto preto de alto contraste na paginação (topo da tabela) */
-body:not(.dark) .p-4.border-b.flex span {
-    color: #000000 !important;
-    font-weight: 800 !important;
 }

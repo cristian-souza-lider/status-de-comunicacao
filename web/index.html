@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js para gráficos estatísticos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Plugin ChartDataLabels para exibir os valores dentro/fora das barras -->
+    <!-- Plugin ChartDataLabels para exibir os valores dentro das barras -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <!-- FontAwesome para ícones do sistema -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -24,10 +24,10 @@
             <div class="flex items-center gap-3 flex-wrap">
                 <span class="text-base font-bold tracking-tight text-white whitespace-nowrap">Análise de Status de Comunicação</span>
                 <span class="hidden xl:inline text-slate-500">|</span>
-                <span class="hidden lg:inline text-slate-300 font-medium whitespace-nowrap">CMI Tráfego - Auto Viação Urubupungá e Viação Cidade Caieiras, empresas do Grupo NSO</span>
+                <span class="hidden lg:inline text-slate-300 font-medium whitespace-nowrap">CMI Tráfego - Urubupungá e Viação Cidade Caieiras, Grupo NSO</span>
                 <span class="hidden xl:inline text-slate-500">|</span>
                 <span class="hidden md:inline text-slate-400 whitespace-nowrap">
-                    <i class="fa-solid fa-circle-info mr-1 text-slate-500"></i> Status de Comunicação extraído do sistema Gool System, a cada hora
+                    <i class="fa-solid fa-circle-info mr-1 text-slate-500"></i> Gool System, a cada hora
                 </span>
             </div>
             <!-- Controles Reordenados: Botão Atualizar -> Info Atualização -> Alternância de Tema -->
@@ -131,25 +131,22 @@
 
         <!-- 1. Tabela de Registros -->
         <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col card-container">
-            <!-- Topo da Tabela (Título e Controle de Páginas) -->
+            <!-- Topo da Tabela (Fundo Branco no Tema Claro) -->
             <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4 bg-white dark:bg-slate-900/40">
                 <h3 class="text-base font-bold text-slate-700 flex items-center gap-1.5 title-color">
                     <i class="fa-solid fa-table-list text-indigo-600"></i> Registros de Status
                 </h3>
                 <div class="flex items-center gap-2">
-                    <span class="text-xs font-black" style="color: #000000 !important;">Exibir</span>
+                    <span class="text-xs font-extrabold select-none">Exibir</span>
                     <input type="number" id="input-linhas-pagina" value="10" min="1" max="100" class="w-14 border border-slate-300 rounded p-0.5 text-center text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-bold select-input">
-                    <span class="text-xs font-black" style="color: #000000 !important;">linhas por página</span>
+                    <span class="text-xs font-extrabold select-none">linhas por página</span>
                 </div>
             </div>
 
-            <!-- ====================================================================== -->
-            <!-- COLORE ESTE NOVO BLOCO AQUI (Container para os mini-cartões no topo da tabela) -->
-            <!-- ====================================================================== -->
-            <div id="container-mini-cards" class="p-3 bg-slate-50 dark:bg-slate-900/30 border-b border-slate-100 dark:border-slate-800 flex flex-wrap gap-2 items-center">
+            <!-- Barra de Ocorrências Ativas (Fundo Branco no Tema Claro) -->
+            <div id="container-mini-cards" class="p-3 border-b border-slate-100 dark:border-slate-800 flex flex-wrap gap-2 items-center">
                 <!-- Gerado dinamicamente via JS -->
             </div>
-            <!-- ====================================================================== -->
 
             <!-- Tabela Compacta -->
             <div class="overflow-x-auto">
@@ -248,41 +245,53 @@
             </div>
         </section>
 
-        <!-- 3. Seção de Gráficos -->
+        <!-- 3. Seção de Gráficos em Linhas Separadas -->
         <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 card-container">
             <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-1.5 title-color">
                 <i class="fa-solid fa-chart-pie text-indigo-600"></i> Distribuição Estatística de Não Conformidades
             </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div class="bg-slate-50 p-3 rounded border border-slate-100 dark:border-slate-800 flex flex-col items-center chart-box">
-                    <span class="text-[10px] font-bold text-slate-500 uppercase mb-3 text-center">Por Empresa</span>
-                    <div class="w-full h-40 relative flex items-center justify-center">
-                        <canvas id="chart-empresa"></canvas>
+            
+            <div class="space-y-6">
+                <!-- Primeira Linha: Os 4 Gráficos Horizontais de Comparação -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Por Empresa -->
+                    <div class="bg-slate-50 p-3 rounded border border-slate-100 dark:border-slate-800 flex flex-col items-center chart-box">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase mb-3 text-center">Por Empresa</span>
+                        <div class="w-full h-40 relative flex items-center justify-center">
+                            <canvas id="chart-empresa"></canvas>
+                        </div>
+                    </div>
+                    <!-- Por Segmento -->
+                    <div class="bg-slate-50 p-3 rounded border border-slate-100 dark:border-slate-800 flex flex-col items-center chart-box">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase mb-3 text-center">Por Segmento</span>
+                        <div class="w-full h-40 relative flex items-center justify-center">
+                            <canvas id="chart-segmento"></canvas>
+                        </div>
+                    </div>
+                    <!-- Por Veículo (Top 5) -->
+                    <div class="bg-slate-50 p-3 rounded border border-slate-100 dark:border-slate-800 flex flex-col items-center chart-box">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase mb-3 text-center">Por Veículo (Top 5)</span>
+                        <div class="w-full h-40 relative flex items-center justify-center">
+                            <canvas id="chart-veiculo"></canvas>
+                        </div>
+                    </div>
+                    <!-- Por Equipamento -->
+                    <div class="bg-slate-50 p-3 rounded border border-slate-100 dark:border-slate-800 flex flex-col items-center chart-box">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase mb-3 text-center">Por Equipamento</span>
+                        <div class="w-full h-40 relative flex items-center justify-center">
+                            <canvas id="chart-equipamento"></canvas>
+                        </div>
                     </div>
                 </div>
-                <div class="bg-slate-50 p-3 rounded border border-slate-100 dark:border-slate-800 flex flex-col items-center chart-box">
-                    <span class="text-[10px] font-bold text-slate-500 uppercase mb-3 text-center">Por Segmento</span>
-                    <div class="w-full h-40 relative flex items-center justify-center">
-                        <canvas id="chart-segmento"></canvas>
-                    </div>
-                </div>
-                <!-- Gráfico de Linha alterado para Por Veículo (Top 5) -->
-                <div class="bg-slate-50 p-3 rounded border border-slate-100 dark:border-slate-800 flex flex-col items-center chart-box">
-                    <span class="text-[10px] font-bold text-slate-500 uppercase mb-3 text-center">Por Veículo (Top 5)</span>
-                    <div class="w-full h-40 relative flex items-center justify-center">
-                        <canvas id="chart-veiculo"></canvas>
-                    </div>
-                </div>
-                <div class="bg-slate-50 p-3 rounded border border-slate-100 dark:border-slate-800 flex flex-col items-center chart-box">
-                    <span class="text-[10px] font-bold text-slate-500 uppercase mb-3 text-center">Por Equipamento</span>
-                    <div class="w-full h-40 relative flex items-center justify-center">
-                        <canvas id="chart-equipamento"></canvas>
-                    </div>
-                </div>
-                <div class="bg-slate-50 p-3 rounded border border-slate-100 dark:border-slate-800 flex flex-col items-center chart-box">
-                    <span class="text-[10px] font-bold text-slate-500 uppercase mb-3 text-center">Por Faixa Horária</span>
-                    <div class="w-full h-40 relative flex items-center justify-center">
-                        <canvas id="chart-faixa-horaria"></canvas>
+
+                <!-- Segunda Linha: Gráfico Horário em Largura Total -->
+                <div class="grid grid-cols-1">
+                    <div class="bg-slate-50 p-4 rounded border border-slate-100 dark:border-slate-800 flex flex-col items-center chart-box w-full">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase mb-3 text-center">Por Faixa Horária</span>
+                        <!-- Altura estendida para excelente visualização em tela cheia -->
+                        <div class="w-full h-64 relative flex items-center justify-center">
+                            <canvas id="chart-faixa-horaria"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -294,6 +303,7 @@
         <p>© 2026 - Grupo NSO S.A. Todos os direitos reservados.</p>
     </footer>
 
-    <script src="app.js?v=2"></script>
+    <!-- Carrega quebrando cache (?v=3) para carregar o novo escopo do app.js -->
+    <script src="app.js?v=3"></script>
 </body>
 </html>
