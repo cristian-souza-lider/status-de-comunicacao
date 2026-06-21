@@ -633,7 +633,7 @@ function renderizarTabela() {
         });
     });
 
-    document.getElementById('txt-total-registros').textContent = `Exibindo ${inicio + 1} a ${fim} de ${totalRegistros} registros`;
+    document.getElementById('txt-total-registros').textContent = `Exibindo ${fim} de ${totalRegistros} registros`;
     document.getElementById('txt-pag-atual').textContent = `Pág. ${paginaAtual} de ${totalPaginas}`;
     document.getElementById('pag-anterior').disabled = true; 
     document.getElementById('pag-proximo').disabled = true;
@@ -700,26 +700,26 @@ function atualizarMiniCards() {
     });
 
     // Título interno da seção de ocorrências
-    container.innerHTML = '<span class="text-slate-500 dark:text-slate-400 uppercase text-[9px] font-black mr-2 tracking-wider flex-shrink-0">Ocorrências Ativas:</span>';
+    container.innerHTML = '<span class="text-slate-500 dark:text-slate-400 uppercase text-[9px] font-black mr-2 tracking-wider flex-shrink-0">Indicador de Não Conformidades: </span>';
 
     // Cria as tags estruturadas com cores exclusivas para cada um dos 5 tipos
     Object.entries(contagens).forEach(([nome, qtd]) => {
         let corClasse = "";
         
         switch (nome) {
-            case "Sem Transmissão":
+            case "Veículos Sem Transmissão":
                 corClasse = "bg-white dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-900"; // Vermelho
                 break;
-            case "Sem GPS Válido":
+            case "Veículos Sem GPS Válido":
                 corClasse = "bg-white dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-900"; // Amarelo
                 break;
-            case "Sem AVL":
+            case "Veículos Sem AVL":
                 corClasse = "bg-white dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-900"; // Indigo/Azul
                 break;
-            case "Sem Processar Pontos de Controle":
+            case "Veículos Sem Processar Pontos de Controle":
                 corClasse = "bg-white dark:bg-purple-950/20 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-900"; // Roxo
                 break;
-            case "Problema de Carga de Ponto":
+            case "Veículos com Problema de Carga de Ponto":
                 corClasse = "bg-white dark:bg-teal-950/20 text-teal-700 dark:text-teal-400 border-teal-300 dark:border-teal-900"; // Ciano/Verde
                 break;
             default:
