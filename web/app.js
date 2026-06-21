@@ -194,17 +194,25 @@ function processarDadosGerais() {
 
         const condicao = (linhaOriginal && linhaOriginal !== "null") ? "Escalado" : "Sem Escala";
 
+        // Mapeamento e Higienização Estrita das 5 Não Conformidades Oficiais
         const ncOriginal = item["Não Conformidade"];
         let ncLimpa = "";
         if (ncOriginal && ncOriginal !== "null" && ncOriginal !== "") {
             let t = ncOriginal.toLowerCase();
             if (t.includes("sem transmissão") || t.includes("sem transmissao")) {
                 ncLimpa = "Sem Transmissão";
+            } else if (t.includes("sem gps válido") || t.includes("sem gps valido")) {
+                ncLimpa = "Sem GPS Válido";
             } else if (t.includes("sem gps")) {
                 ncLimpa = "Sem GPS";
             } else if (t.includes("sem avl")) {
                 ncLimpa = "Sem AVL";
+            } else if (t.includes("sem processar pontos de controle") || t.includes("pontos de controle")) {
+                ncLimpa = "Sem Processar Pontos de Controle";
+            } else if (t.includes("carga de ponto") || t.includes("problema de carga")) {
+                ncLimpa = "Problema de Carga de Ponto";
             } else {
+                // Fallback de limpeza genérica se houver algum outro texto
                 let limpo = ncOriginal.replace(/^Ve[íi]culo\s+/i, "");
                 limpo = limpo.replace(/\s+\d+h\d+min.*$/i, "");
                 limpo = limpo.replace(/\s+\d+h.*$/i, "");
@@ -403,6 +411,7 @@ function aplicarFiltros() {
     paginaAtual = 1;
     colunaOrdenada = ''; 
     atualizarKPIs();
+    atualizarMiniCards(); // <-- ADICIONE ESTA LINHA AQUI
     renderizarTabela();
     atualizarGraficos();
 }
@@ -482,6 +491,66 @@ function atualizarKPIs() {
     document.querySelectorAll('#kpi-fichas-abertas').forEach(el => el.textContent = fichasAbertas.toLocaleString('pt-BR'));
     document.querySelectorAll('#kpi-gps-valido').forEach(el => el.textContent = gpsValido.toLocaleString('pt-BR'));
     document.querySelectorAll('#kpi-gps-invalido').forEach(el => el.textContent = gpsInvalido.toLocaleString('pt-BR'));
+}
+
+// Gera dinamicamente os mini-cartões com as 5 Não Conformidades oficiais fixas
+function atualizarMiniCards() {
+    const container = document.getElementById('container-mini-cards');
+    if (!container) return;
+
+    // Inicialização fixa das 5 não conformidades oficiais com 0
+    const contagens = {
+        "Sem Transmissão": 0,
+        "Sem GPS Válido": 0,
+        "Sem AVL": 0,
+        "Sem Processar Pontos de Controle": 0,
+        "Problema de Carga de Ponto": 0
+    };
+
+    // Incrementa as contagens baseadas nos dados filtrados ativos na tela
+    dadosFiltrados.forEach(item => {
+        const nc = item._naoConformidadeLimpa;
+        if (nc && nc !== "") {
+            // Caso seja uma não conformidade extra dinâmica, cria a chave em tempo de execução
+            contagens[nc] = (contagens[nc] || 0) + 1;
+        }
+    });
+
+    // Título interno da seção de ocorrências
+    container.innerHTML = '<span class="text-slate-500 dark:text-slate-400 uppercase text-[9px] font-black mr-2 tracking-wider flex-shrink-0">Ocorrências Ativas:</span>';
+
+    // Cria as tags estruturadas com cores exclusivas para cada um dos 5 tipos
+    Object.entries(contagens).forEach(([nome, qtd]) => {
+        let corClasse = "";
+        
+        switch (nome) {
+            case "Sem Transmissão":
+                corClasse = "bg-white dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-900"; // Vermelho
+                break;
+            case "Sem GPS Válido":
+                corClasse = "bg-white dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-900"; // Amarelo
+                break;
+            case "Sem AVL":
+                corClasse = "bg-white dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-900"; // Indigo/Azul
+                break;
+            case "Sem Processar Pontos de Controle":
+                corClasse = "bg-white dark:bg-purple-950/20 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-900"; // Roxo
+                break;
+            case "Problema de Carga de Ponto":
+                corClasse = "bg-white dark:bg-teal-950/20 text-teal-700 dark:text-teal-400 border-teal-300 dark:border-teal-900"; // Ciano/Verde
+                break;
+            default:
+                corClasse = "bg-white dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700"; // Outros genéricos
+        }
+
+        const cardHtml = `
+            <div class="flex items-center gap-1.5 px-2.5 py-0.5 rounded border ${corClasse} text-[11px] font-extrabold shadow-sm transition-all duration-150">
+                <span>${nome}:</span>
+                <span class="font-black text-xs">${qtd}</span>
+            </div>
+        `;
+        container.innerHTML += cardHtml;
+    });
 }
 
 // Renderiza Linhas da Tabela Otimizada e Centralizada
