@@ -558,7 +558,7 @@ function renderizarTabela() {
     const registrosPagina = dadosFiltrados.slice(inicio, fim);
 
     if (totalRegistros === 0) {
-        corpo.innerHTML = '<tr><td colspan="12" class="p-6 text-center text-slate-500 font-medium bg-white dark:bg-slate-800">Nenhum registro encontrado para os filtros selecionados.</td></tr>';
+        corpo.innerHTML = '<tr><td colspan="13" class="p-6 text-center text-slate-500 font-medium bg-white dark:bg-slate-800">Nenhum registro encontrado para os filtros selecionados.</td></tr>';
         document.getElementById('txt-total-registros').textContent = 'Exibindo 0 de 0 registros';
         document.getElementById('txt-pag-atual').textContent = 'Pág. 1 de 1';
         document.getElementById('pag-anterior').disabled = true; 
@@ -579,6 +579,13 @@ function renderizarTabela() {
             : '<span class="text-rose-500 dark:text-rose-400 font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Inválido</span>';
 
         const textLinha = item._linhaPrefixo ? `<span class="font-mono bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded font-bold text-slate-700 dark:text-slate-200">${item._linhaPrefixo}</span>` : '<span class="text-slate-400 italic">Sem Escala</span>';
+
+        let badgeIntegracao = "";
+        if (item._integracao === "Sem Integração") {
+            badgeIntegracao = '<span class="text-rose-500 dark:text-rose-400 font-bold"><i class="fa-solid fa-circle-xmark mr-1"></i> Sem Integração</span>';
+        } else if (item._integracao === "Falha na Integração") {
+            badgeIntegracao = '<span class="text-amber-500 dark:text-amber-400 font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Falha na Integração</span>';
+        }
 
         const keyFicha = `ficha_${item._veiculoFormatado}_${item._dataExportacao}`;
         const estadoFicha = localStorage.getItem(keyFicha) || '';
@@ -609,6 +616,7 @@ function renderizarTabela() {
             <td class="text-xs">${badgeGPS}</td>
             <td class="text-xs font-semibold ${item["Estado Validador"] === 'Bloqueado' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-300'}">${item["Estado Validador"] || ''}</td>
             <td class="text-xs font-mono">${item["Hora estado validador"] || ''}</td>
+            <td class="text-xs text-center">${badgeIntegracao}</td> <!-- <-- ADICIONE ESTA LINHA DA INTEGRAÇÃO AQUI -->
             ${tdFicha}
         `;
         corpo.appendChild(tr);
