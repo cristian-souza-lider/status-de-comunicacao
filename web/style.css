@@ -157,6 +157,11 @@ body:not(.dark) #container-mini-cards div {
     border-color: #cbd5e1 !important; /* Mantém a borda clara e nítida */
 }
 
+body:not(.dark) #container-mini-cards div span {
+    color: #000000 !important;
+    font-weight: 800 !important;
+}    
+
 /* --- ESTILOS DO TEMA ESCURO (DARK MODE) --- */
 body.dark {
     background-color: #0b0f19;
