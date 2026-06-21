@@ -151,6 +151,12 @@ body:not(.dark) #pag-proximo {
     background-color: #ffffff !important;
 }
 
+/* Forçar fundo branco em todos os mini-cartões (minicards) no Tema Claro */
+body:not(.dark) #container-mini-cards div {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important; /* Mantém a borda clara e nítida */
+}
+
 /* --- ESTILOS DO TEMA ESCURO (DARK MODE) --- */
 body.dark {
     background-color: #0b0f19;
