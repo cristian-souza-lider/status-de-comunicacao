@@ -6,7 +6,6 @@ import shutil
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -142,7 +141,6 @@ def executar_loop_empresas(driver, situacao_nome, temp_download_dir):
         time.sleep(5)
 
 def executar_robot():
-    # Caminho absoluto normalizado para evitar falhas de leitura
     temp_download_dir = os.path.abspath(r"C:\Projetos em Python\Status de Comunicação\temp_downloads")
     
     if os.path.exists(temp_download_dir):
@@ -150,22 +148,30 @@ def executar_robot():
     os.makedirs(temp_download_dir)
 
     chrome_options = webdriver.ChromeOptions()
+    
+    # ARGUMENTOS DE SEGURANÇA E COMPATIBILIDADE DE RENDERIZAÇÃO
+    chrome_options.add_argument("--remote-allow-origins=*") # Permite a comunicação do Python com o Chrome
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--disable-features=VizDisplayCompositor") # Evita falhas de renderização gráfica no Windows 11
+    
     prefs = {
         "download.default_directory": temp_download_dir,
         "download.prompt_for_download": False,
         "download.directory_upgrade": True,
-        "safebrowsing.enabled": False,  # Desativa para evitar bloqueios de segurança em arquivos antigos (.xls)
+        "safebrowsing.enabled": False,
         "profile.default_content_setting_values.automatic_downloads": 1
     }
     chrome_options.add_experimental_option("prefs", prefs)
 
-    service = Service(ChromeDriverManager().install())
+    service = Service()
+    service.hostname = "127.0.0.1"
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.maximize_window()
     
-    # ... (o restante da função executar_robot permanece igual ao enviado anteriormente)
-    
     try:
+        # Abertura do site
         driver.get("https://gool.cittati.com.br/Login.aspx?ReturnUrl=%2f")
         
         # 1º Passo: Clicar no ícone Urbano
