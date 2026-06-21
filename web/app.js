@@ -328,7 +328,6 @@ function preencherOpcoesFiltros() {
     };
 
     carregarOpcaoUnica('filtro-data', '_dataExportacao');
-    carregarOpcaoUnica('filtro-hora', '_horaExportacao');
     carregarOpcaoUnica('filtro-situacao', 'Situação');
     carregarOpcaoUnica('filtro-equipamento', 'Fab');
     carregarOpcaoUnica('filtro-status', 'Status');
@@ -355,6 +354,7 @@ function configurarFiltrosIniciais() {
     }
 
     atualizarOpcoesSegmento();
+    atualizarOpcoesHora();
 
     const selectHora = document.getElementById('filtro-hora');
     const opcoesHora = Array.from(selectHora.options).map(o => o.value).filter(Boolean);
@@ -413,6 +413,7 @@ function limparFiltros() {
     document.getElementById('filtro-integracao').value = "";
     
     atualizarOpcoesSegmento();
+    atualizarOpcoesHora();
     aplicarFiltros();
 }
 
@@ -421,6 +422,7 @@ function aplicarFiltros() {
     const filtroEmpresa = document.getElementById('filtro-empresa').value;
     
     atualizarOpcoesSegmento();
+    atualizarOpcoesHora();
     
     const filtros = {
         data: document.getElementById('filtro-data').value,
@@ -732,6 +734,41 @@ function atualizarMiniCards() {
         `;
         container.innerHTML += cardHtml;
     });
+}
+
+// Atualiza o dropdown de horas baseado na Data selecionada
+function atualizarOpcoesHora() {
+    const selectData = document.getElementById('filtro-data');
+    const selectHora = document.getElementById('filtro-hora');
+    const horaSelecionada = selectHora.value;
+    
+    selectHora.innerHTML = '<option value="">Todos</option>';
+    
+    // Se houver uma data selecionada, filtra as horas correspondentes. Caso contrário, traz todas.
+    let dadosFiltradosPorData = dadosProcessados;
+    if (selectData.value) {
+        dadosFiltradosPorData = dadosProcessados.filter(d => d._dataExportacao === selectData.value);
+    }
+    
+    const horasUnicas = [...new Set(dadosFiltradosPorData.map(d => d._horaExportacao).filter(Boolean))];
+    
+    // Ordena as horas numericamente (ex: 16h, 17h, 18h, etc.)
+    horasUnicas.sort((a, b) => {
+        const numA = parseInt(a.replace('h', ''));
+        const numB = parseInt(b.replace('h', ''));
+        return numA - numB;
+    });
+    
+    horasUnicas.forEach(h => {
+        selectHora.innerHTML += `<option value="${h}">${h}</option>`;
+    });
+
+    // Se a hora anteriormente selecionada ainda for válida na nova data, preserva-a
+    if (horasUnicas.includes(horaSelecionada)) {
+        selectHora.value = horaSelecionada;
+    } else {
+        selectHora.value = "";
+    }
 }
 
 // Desenha os gráficos (Todos em barra horizontal, exceto Faixa Horária que é linha)

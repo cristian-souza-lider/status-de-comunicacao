@@ -2,6 +2,7 @@ import os
 import glob
 import pandas as pd
 import json
+import subprocess
 from datetime import datetime
 
 def processar_planilhas_consolidadas():
@@ -10,30 +11,33 @@ def processar_planilhas_consolidadas():
     
     agora = datetime.now()
     ano = agora.strftime("%Y")
-    mes = agora.strftime("%m-%Y")
-    dia = agora.strftime("%d-%m-%y") # Pasta do dia (ex: 20-06-26)
+    mes = agora.strftime("%m-%Y") # Pasta do mês atual (ex: 06-2026)
     
-    pasta_dia_atual = os.path.join(base_onedrive, ano, mes, dia)
+    # Aponta para a pasta do mês inteiro, em vez de focar apenas no dia atual
+    pasta_mes_atual = os.path.join(base_onedrive, ano, mes)
     
-    if not os.path.exists(pasta_dia_atual):
-        print(f"A pasta do dia atual não existe ou está vazia: {pasta_dia_atual}")
+    if not os.path.exists(pasta_mes_atual):
+        print(f"A pasta do mês atual não existe ou está vazia: {pasta_mes_atual}")
         return False
         
-    # Busca de forma cumulativa e profunda (recursiva) todas as planilhas do dia atual
-    todos_arquivos = glob.glob(os.path.join(pasta_dia_atual, "**", "*.xls*"), recursive=True)
+    # Busca de forma cumulativa e profunda todas as planilhas do mês atual
+    todos_arquivos = glob.glob(os.path.join(pasta_mes_atual, "**", "*.xls*"), recursive=True)
     
-    # Filtro rigoroso: garante que o arquivo está inserido em uma pasta de hora (ex: "16h", "20h")
+    # Filtro rigoroso: garante que o arquivo está inserido na árvore correta (dia -> hora -> arquivos)
     arquivos = []
     for f in todos_arquivos:
-        pasta_pai = os.path.basename(os.path.dirname(f))
-        if pasta_pai.endswith("h") and pasta_pai[:-1].isdigit():
+        pasta_pai = os.path.basename(os.path.dirname(f)) # Ex: "19h"
+        pasta_avo = os.path.basename(os.path.dirname(os.path.dirname(f))) # Ex: "20-06-26"
+        
+        # Validação: pasta pai direta é hora (termina com "h") e pasta avô contém hífen (data)
+        if pasta_pai.endswith("h") and pasta_pai[:-1].isdigit() and "-" in pasta_avo:
             arquivos.append(f)
             
     if not arquivos:
-        print("Nenhum arquivo de planilha válido foi localizado nas pastas de hora do dia atual.")
+        print("Nenhum arquivo de planilha válido foi localizado no diretório do mês atual.")
         return False
         
-    print(f"Iniciando consolidação acumulativa de {len(arquivos)} planilhas no dia...")
+    print(f"Iniciando consolidação acumulativa de {len(arquivos)} planilhas no mês...")
     lista_dfs = []
     
     for arquivo in arquivos:
@@ -44,7 +48,7 @@ def processar_planilhas_consolidadas():
             nome_pasta_hora = os.path.basename(os.path.dirname(arquivo)) # Ex: "19h"
             nome_pasta_dia = os.path.basename(os.path.dirname(os.path.dirname(arquivo))) # Ex: "20-06-26"
             
-            # Formata a data "20-06-26" para "20/06/26"
+            # Formata a data de "20-06-26" para "20/06/26"
             data_formatada = nome_pasta_dia.replace("-", "/")
             
             df = None
@@ -72,7 +76,7 @@ def processar_planilhas_consolidadas():
         print("Nenhum dado válido pôde ser extraído das planilhas.")
         return False
         
-    # Consolida todos os dados acumulados do dia
+    # Consolida todos os dados acumulados de todos os dias e horas
     df_consolidado = pd.concat(lista_dfs, ignore_index=True)
     
     # Converte para dicionário Python padrão (lista de objetos)
@@ -92,17 +96,15 @@ def processar_planilhas_consolidadas():
     print(f"Consolidação concluída. {len(dados_dict)} registros acumulados salvos em: {caminho_json}")
 
     # ======================================================================
-    # ADICIONE ESTE BLOCO ABAIXO (LOGO ANTES DO "return True")
-    # Ele enviará o dados.json atualizado para o GitHub automaticamente
+    # ENVIO AUTOMÁTICO PARA O GITHUB (ATUALIZAÇÃO DO CLOUDFLARE PAGES)
     # ======================================================================
-    import subprocess
     try:
         print("Enviando dados atualizados para o GitHub...")
         subprocess.run(["git", "add", "web/dados.json"], check=True)
         # O commit usa o horário atual da consolidação na mensagem
-        subprocess.run(["git", "commit", "-m", f"Atualizacao automatica: dados {nome_pasta_hora}"], check=True)
+        subprocess.run(["git", "commit", "-m", "Atualizacao automatica: dados historicos do mes"], check=True)
         subprocess.run(["git", "push"], check=True)
-        print("GitHub atualizado! O Netlify deve atualizar o site online em instantes.")
+        print("GitHub atualizado! O Cloudflare Pages atualizará o site online em instantes.")
     except Exception as e:
         print(f"Não foi possível fazer o push automático para o GitHub: {e}")
     # ======================================================================
