@@ -7,7 +7,7 @@ from datetime import datetime
 
 def processar_planilhas_consolidadas():
     base_onedrive = r"C:\Users\Note Acer Aspire 5\OneDrive\Status de Comunicação"
-    pasta_web = r"C:\Projetos em Python\Status de Comunicação\web"
+    pasta_web = r"C:\Projetos em Python\Status de Comunicação"
     
     agora = datetime.now()
     ano = agora.strftime("%Y")
