@@ -526,6 +526,8 @@ function atualizarKPIs() {
     const semEscala = dadosFiltrados.filter(d => d._condicao === "Sem Escala").length;
     const gpsValido = dadosFiltrados.filter(d => d["Status GPS"] === "Válido").length;
     const gpsInvalido = total - gpsValido;
+    const falhaIntegracao = dadosFiltrados.filter(d => d._integracao === "Falha na Integração").length;
+    const semIntegracao = dadosFiltrados.filter(d => d._integracao === "Sem Integração").length;
 
     // Cálculo dinâmico do novo KPI: Fichas Abertas
     const fichasAbertas = dadosFiltrados.filter(item => {
@@ -538,9 +540,11 @@ function atualizarKPIs() {
     document.querySelectorAll('#kpi-manutencao').forEach(el => el.textContent = manutencao.toLocaleString('pt-BR'));
     document.querySelectorAll('#kpi-escalados').forEach(el => el.textContent = escalados.toLocaleString('pt-BR'));
     document.querySelectorAll('#kpi-sem-escala').forEach(el => el.textContent = semEscala.toLocaleString('pt-BR'));
-    document.querySelectorAll('#kpi-fichas-abertas').forEach(el => el.textContent = fichasAbertas.toLocaleString('pt-BR'));
     document.querySelectorAll('#kpi-gps-valido').forEach(el => el.textContent = gpsValido.toLocaleString('pt-BR'));
     document.querySelectorAll('#kpi-gps-invalido').forEach(el => el.textContent = gpsInvalido.toLocaleString('pt-BR'));
+    document.querySelectorAll('#kpi-falha-integracao').forEach(el => el.textContent = falhaIntegracao.toLocaleString('pt-BR'));
+    document.querySelectorAll('#kpi-sem-integracao').forEach(el => el.textContent = semIntegracao.toLocaleString('pt-BR'));
+    document.querySelectorAll('#kpi-fichas-abertas').forEach(el => el.textContent = fichasAbertas.toLocaleString('pt-BR'));    
 }
 
 // Renderiza Linhas da Tabela Otimizada e Centralizada

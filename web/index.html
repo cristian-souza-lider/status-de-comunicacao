@@ -186,7 +186,7 @@
         </section>
 
         <!-- 2. Pequeno Dashboard (Cards KPI) -->
-        <section class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+        <section class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-10  gap-3">
             <div class="bg-white p-3 rounded-lg shadow-sm border border-slate-200 flex flex-col justify-between card-container">
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Veículos</span>
                 <div class="flex items-baseline justify-between mt-1">
@@ -236,6 +236,21 @@
                     <i class="fa-solid fa-location-pin-lock text-slate-400 text-base"></i>
                 </div>
             </div>
+            <div class="bg-white p-3 rounded-lg shadow-sm border border-slate-200 border-l-4 border-l-amber-500 flex flex-col justify-between card-container">
+                <span class="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Falha Integração</span>
+                <div class="flex items-baseline justify-between mt-1">
+                    <span id="kpi-falha-integracao" class="text-xl font-black text-amber-700 dark:text-amber-500">0</span>
+                    <i class="fa-solid fa-triangle-exclamation text-amber-400 text-base"></i>
+                </div>
+            </div>
+            <div class="bg-white p-3 rounded-lg shadow-sm border border-slate-200 border-l-4 border-l-rose-500 flex flex-col justify-between card-container">
+                <span class="text-[10px] font-bold text-rose-600 uppercase tracking-wider">Sem Integração</span>
+                <div class="flex items-baseline justify-between mt-1">
+                    <span id="kpi-sem-integracao" class="text-xl font-black text-rose-700 dark:text-rose-400">0</span>
+                    <i class="fa-solid fa-circle-xmark text-rose-400 text-base"></i>
+                </div>
+            </div>
+            
             <!-- Ficha Aberta (No fim da linha de cartões) -->
             <div class="bg-white p-3 rounded-lg shadow-sm border border-slate-200 border-l-4 border-l-rose-600 flex flex-col justify-between card-container">
                 <span class="text-[10px] font-bold text-rose-600 uppercase tracking-wider">Ficha Aberta</span>
