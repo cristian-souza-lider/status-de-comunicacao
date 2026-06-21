@@ -1,0 +1,5 @@
+.venv/
+temp_downloads/
+__pycache__/
+*.xlsx
+*.xls
