@@ -704,27 +704,57 @@ function atualizarGraficos() {
         return counts;
     };
 
-    // Ativa ou desativa o modo Tela Cheia nativo do navegador
+// Ativa ou desativa o modo Tela Cheia com suporte a múltiplos navegadores
 function alternarFullscreen() {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen()
-            .catch(err => {
-                console.error(`Erro ao tentar ativar tela cheia: ${err.message}`);
+    const docEl = document.documentElement;
+    const isFullscreen = document.fullscreenElement || 
+                         document.webkitFullscreenElement || 
+                         document.mozFullScreenElement || 
+                         document.msFullscreenElement;
+
+    if (!isFullscreen) {
+        const requestFS = docEl.requestFullscreen || 
+                          docEl.webkitRequestFullscreen || 
+                          docEl.mozRequestFullScreen || 
+                          docEl.msRequestFullscreen;
+        if (requestFS) {
+            requestFS.call(docEl).catch(err => {
+                console.error(`Erro ao ativar tela cheia: ${err.message}`);
             });
+        }
     } else {
-        document.exitFullscreen();
+        const exitFS = document.exitFullscreen || 
+                       document.webkitExitFullscreen || 
+                       document.mozCancelFullScreen || 
+                       document.msExitFullscreen;
+        if (exitFS) {
+            exitFS.call(document);
+        }
     }
 }
 
-// Garante que o ícone mude se a tela cheia for ativada pelo botão ou desativada via tecla ESC
+// Sincroniza o ícone de expansão/compressão em múltiplos navegadores
 function sincronizarIconeFullscreen() {
     const icon = document.getElementById('icon-fullscreen');
-    if (document.fullscreenElement) {
+    if (!icon) return;
+    
+    const isFullscreen = document.fullscreenElement || 
+                         document.webkitFullscreenElement || 
+                         document.mozFullScreenElement || 
+                         document.msFullscreenElement;
+                         
+    if (isFullscreen) {
         icon.className = 'fa-solid fa-compress text-sm';
     } else {
         icon.className = 'fa-solid fa-expand text-sm';
     }
 }
+
+// Registra escutas de evento de mudança de tela cheia para todos os navegadores
+const eventosFullscreen = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'];
+eventosFullscreen.forEach(evento => {
+    document.addEventListener(evento, sincronizarIconeFullscreen);
+});
 
     const countEmpresa = agruparEContar('_empresaGrupo');
     const countSegmento = agruparEContar('_segmento', true);
