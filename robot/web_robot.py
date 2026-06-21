@@ -5,8 +5,6 @@ import glob
 import shutil
 from datetime import datetime
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -150,12 +148,12 @@ def executar_robot():
 
     chrome_options = webdriver.ChromeOptions()
     
-    # ARGUMENTOS DE SEGURANÇA E COMUNICAÇÃO CORPORATIVA
-    chrome_options.add_argument("--remote-allow-origins=*") # <- A SOLUÇÃO: Libera a comunicação de rede bloqueada
+    # ARGUMENTOS DE SEGURANÇA E COMPATIBILIDADE DE RENDERIZAÇÃO
+    chrome_options.add_argument("--remote-allow-origins=*") # Permite a comunicação do Python com o Chrome
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--disable-software-rasterizer")
+    chrome_options.add_argument("--disable-features=VizDisplayCompositor") # Evita falhas de renderização gráfica no Windows 11
     
     prefs = {
         "download.default_directory": temp_download_dir,
@@ -166,9 +164,9 @@ def executar_robot():
     }
     chrome_options.add_experimental_option("prefs", prefs)
 
-    # Inicia o serviço forçando a liberação das portas locais
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
+    # INICIALIZAÇÃO 100% NATIVA DO SELENIUM 4
+    # Ele baixará e usará o ChromeDriver exato da versão 149 de forma automática
+    driver = webdriver.Chrome(options=chrome_options)
     driver.maximize_window()
     
     try:
