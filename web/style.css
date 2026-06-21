@@ -151,16 +151,13 @@ body:not(.dark) #pag-proximo {
     background-color: #ffffff !important;
 }
 
-/* Forçar fundo branco em todos os mini-cartões (minicards) no Tema Claro */
+/* Forçar fontes em preto no indicador de não conformidades (Tema Claro) */
+body:not(.dark) #container-mini-cards,
+body:not(.dark) #container-mini-cards span,
 body:not(.dark) #container-mini-cards div {
-    background-color: #ffffff !important;
-    border-color: #cbd5e1 !important; /* Mantém a borda clara e nítida */
-}
-
-body:not(.dark) #container-mini-cards div span {
     color: #000000 !important;
     font-weight: 800 !important;
-}    
+}   
 
 /* --- ESTILOS DO TEMA ESCURO (DARK MODE) --- */
 body.dark {
