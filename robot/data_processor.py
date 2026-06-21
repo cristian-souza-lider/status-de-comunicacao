@@ -91,6 +91,19 @@ def processar_planilhas_consolidadas():
         
     print(f"Consolidação concluída. {len(dados_dict)} registros acumulados salvos em: {caminho_json}")
     return True
+    
+    # ENVIAR ATUALIZAÇÃO AUTOMATICAMENTE PARA O GITHUB:
+    import subprocess
+    try:
+        print("Sincronizando dados com o repositório remoto...")
+        subprocess.run(["git", "add", "web/dados.json"], check=True)
+        subprocess.run(["git", "commit", "-m", f"Atualizacao automatica de dados: {hora}"], check=True)
+        subprocess.run(["git", "push"], check=True)
+        print("Dados integrados e enviados ao GitHub com sucesso. O Netlify atualizará em instantes.")
+    except Exception as erro_git:
+        print(f"Aviso: Não foi possível realizar o push automático para o Git: {str(erro_git)}")
+        
+    return True
 
 if __name__ == "__main__":
     processar_planilhas_consolidadas()
