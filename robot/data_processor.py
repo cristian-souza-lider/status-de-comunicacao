@@ -2,54 +2,66 @@ import os
 import glob
 import pandas as pd
 import json
+import shutil
 import subprocess
 from datetime import datetime
 
 def processar_planilhas_consolidadas():
-    # Caminhos de diretórios padrão do projeto
+    # Caminho do OneDrive corporativo conforme solicitado
     base_onedrive = r"C:\Users\cristian.souza\OneDrive - Nossa Senhora do Ó Participações S.A\Status de Comunicação"
     pasta_web = r"C:\Projetos em Python\Status de Comunicação\web"
     
+    # 1. Verifica se já existem os 14 arquivos sincronizados na raiz do OneDrive pelo Power Automate
+    arquivos_novos = glob.glob(os.path.join(base_onedrive, "*.xls*"))
+    
+    if len(arquivos_novos) < 14:
+        # Se houver menos de 14 arquivos, aguarda o Power Automate terminar
+        return False
+        
+    print(f"\nSincronização detectada! {len(arquivos_novos)} arquivos carregados na raiz do OneDrive pelo Power Automate.")
+    
+    # 2. Cria a estrutura cronológica para organizar e arquivar os arquivos brutos
     agora = datetime.now()
     ano = agora.strftime("%Y")
-    mes = agora.strftime("%m-%Y") # Pasta do mês atual (ex: 06-2026)
+    mes = agora.strftime("%m-%Y")
+    dia = agora.strftime("%d-%m-%y")
+    hora = agora.strftime("%Hh")
     
-    # Aponta para a pasta do mês inteiro, consolidando o histórico acumulado
-    pasta_mes_atual = os.path.join(base_onedrive, ano, mes)
+    pasta_arquivamento = os.path.join(base_onedrive, ano, mes, dia, hora)
+    os.makedirs(pasta_arquivamento, exist_ok=True)
     
-    if not os.path.exists(pasta_mes_atual):
-        print(f"A pasta do mês atual não existe ou está vazia: {pasta_mes_atual}")
-        return False
+    # 3. Move os arquivos novos da raiz para a pasta cronológica para limpar a raiz do OneDrive
+    for arquivo in arquivos_novos:
+        nome_arquivo = os.path.basename(arquivo)
+        destino = os.path.join(pasta_arquivamento, nome_arquivo)
+        shutil.move(arquivo, destino)
         
-    # Busca de forma cumulativa e profunda todas as planilhas do mês atual
+    print(f"Arquivos consolidados movidos e organizados em: {pasta_arquivamento}")
+    
+    # 4. Faz a consolidação acumulada de todos os arquivos históricos do mês atual
+    pasta_mes_atual = os.path.join(base_onedrive, ano, mes)
     todos_arquivos = glob.glob(os.path.join(pasta_mes_atual, "**", "*.xls*"), recursive=True)
     
-    # Filtro rigoroso: garante que o arquivo está inserido na árvore correta (dia -> hora -> arquivos)
-    arquivos = []
+    # Filtro rigoroso de segurança de caminhos
+    arquivos_historicos = []
     for f in todos_arquivos:
-        pasta_pai = os.path.basename(os.path.dirname(f)) # Ex: "19h"
-        pasta_avo = os.path.basename(os.path.dirname(os.path.dirname(f))) # Ex: "20-06-26"
-        
-        # Validação: pasta pai direta é hora (termina com "h") e pasta avô contém hífen (data)
+        pasta_pai = os.path.basename(os.path.dirname(f))
+        pasta_avo = os.path.basename(os.path.dirname(os.path.dirname(f)))
         if pasta_pai.endswith("h") and pasta_pai[:-1].isdigit() and "-" in pasta_avo:
-            arquivos.append(f)
+            arquivos_historicos.append(f)
             
-    if not arquivos:
-        print("Nenhum arquivo de planilha válido foi localizado no diretório do mês atual.")
+    if not arquivos_historicos:
+        print("Nenhum arquivo histórico foi localizado no diretório do mês atual.")
         return False
         
-    print(f"Iniciando consolidação acumulativa de {len(arquivos)} planilhas no mês...")
+    print(f"Consolidando histórico completo do mês ({len(arquivos_historicos)} planilhas)...")
     lista_dfs = []
     
-    for arquivo in arquivos:
+    for arquivo in arquivos_historicos:
         try:
             nome_arquivo = os.path.basename(arquivo)
-            
-            # Extrai dinamicamente a Hora e a Data a partir da árvore de diretórios do OneDrive
-            nome_pasta_hora = os.path.basename(os.path.dirname(arquivo)) # Ex: "19h"
-            nome_pasta_dia = os.path.basename(os.path.dirname(os.path.dirname(arquivo))) # Ex: "20-06-26"
-            
-            # Formata a data de "20-06-26" para "20/06/26"
+            nome_pasta_hora = os.path.basename(os.path.dirname(arquivo))
+            nome_pasta_dia = os.path.basename(os.path.dirname(os.path.dirname(arquivo)))
             data_formatada = nome_pasta_dia.replace("-", "/")
             
             df = None
@@ -65,7 +77,6 @@ def processar_planilhas_consolidadas():
                     continue
             
             if df is not None and not df.empty:
-                # Injeta a data e hora extraídas das pastas físicas no DataFrame de dados
                 df["_data_pasta"] = data_formatada
                 df["_hora_pasta"] = nome_pasta_hora
                 lista_dfs.append(df)
@@ -77,10 +88,8 @@ def processar_planilhas_consolidadas():
         print("Nenhum dado válido pôde ser extraído das planilhas.")
         return False
         
-    # Consolida todos os dados acumulados de todos os dias e horas
+    # Consolida os dados em um único DataFrame
     df_consolidado = pd.concat(lista_dfs, ignore_index=True)
-    
-    # Converte para dicionário Python padrão (lista de objetos)
     dados_dict = df_consolidado.to_dict(orient="records")
     
     # Limpeza absoluta de NaNs antes de exportar
@@ -89,7 +98,6 @@ def processar_planilhas_consolidadas():
             if pd.isna(valor):
                 registro[chave] = None  
                 
-    # Garante a existência do diretório web e salva o JSON rigorosamente dentro de web/dados.json
     os.makedirs(pasta_web, exist_ok=True)
     caminho_json = os.path.join(pasta_web, "dados.json")
     with open(caminho_json, "w", encoding="utf-8") as f:
@@ -97,21 +105,14 @@ def processar_planilhas_consolidadas():
         
     print(f"Consolidação concluída. {len(dados_dict)} registros acumulados salvos em: {caminho_json}")
 
-    # ======================================================================
-    # ENVIO AUTOMÁTICO PARA O GITHUB (ATUALIZAÇÃO DO CLOUDFLARE PAGES)
-    # ======================================================================
+    # 5. Sincronização automática com o GitHub (Netlify/Cloudflare)
     try:
         print("Enviando dados atualizados para o GitHub...")
         subprocess.run(["git", "add", "web/dados.json"], check=True)
-        # O commit usa o horário atual da consolidação na mensagem
-        subprocess.run(["git", "commit", "-m", "Atualizacao automatica: dados historicos do mes"], check=True)
+        subprocess.run(["git", "commit", "-m", "Atualizacao automatica: consolidacao mensal"], check=True)
         subprocess.run(["git", "push"], check=True)
         print("GitHub atualizado! O Cloudflare Pages atualizará o site online em instantes.")
     except Exception as e:
         print(f"Não foi possível fazer o push automático para o GitHub: {e}")
-    # ======================================================================
-
+        
     return True
-
-if __name__ == "__main__":
-    processar_planilhas_consolidadas()
