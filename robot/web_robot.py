@@ -8,6 +8,7 @@ import glob
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.edge.options import Options as EdgeOptions
+from selenium.webdriver.edge.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -166,8 +167,9 @@ def executar_robot():
     }
     edge_options.add_experimental_option("prefs", prefs)
 
-    # Inicializa o Microsoft Edge de forma nativa e segura para a rede da empresa
-    driver = webdriver.Edge(options=edge_options)
+    service = Service(host="127.0.0.1")
+    driver = webdriver.Edge(options=edge_options, service=service)
+    
     driver.maximize_window()
     
     try:
