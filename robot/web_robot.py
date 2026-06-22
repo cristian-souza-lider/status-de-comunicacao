@@ -7,7 +7,7 @@ import time
 import glob
 from datetime import datetime
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.edge.options import Options as EdgeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -149,27 +149,25 @@ def executar_robot():
         shutil.rmtree(temp_download_dir)
     os.makedirs(temp_download_dir)
 
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument("--headless=new")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--proxy-server=direct://")
-    chrome_options.add_argument("--proxy-bypass-list=*")  
-    chrome_options.add_argument("--remote-allow-origins=*")
-    chrome_options.add_argument("--disable-features=VizDisplayCompositor")
-    
+    # Configurações específicas para o Microsoft Edge
+    edge_options = EdgeOptions()
+    edge_options.add_argument("--headless=new") # Roda em segundo plano
+    edge_options.add_argument("--no-sandbox")
+    edge_options.add_argument("--disable-dev-shm-usage")
+    edge_options.add_argument("--disable-gpu")
+    edge_options.add_argument("--proxy-server=direct://")
+    edge_options.add_argument("--proxy-bypass-list=*")
+
     prefs = {
         "download.default_directory": temp_download_dir,
         "download.prompt_for_download": False,
         "download.directory_upgrade": True,
-        "safebrowsing.enabled": False,
         "profile.default_content_setting_values.automatic_downloads": 1
     }
-    chrome_options.add_experimental_option("prefs", prefs)
+    edge_options.add_experimental_option("prefs", prefs)
 
-    driver = webdriver.Chrome(options=chrome_options)
-    
+    # Inicializa o Microsoft Edge de forma nativa e segura para a rede da empresa
+    driver = webdriver.Edge(options=edge_options)
     driver.maximize_window()
     
     try:
