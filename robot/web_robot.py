@@ -1,8 +1,10 @@
 import os
+import shutil
+os.environ['no_proxy'] = 'localhost,127.0.0.1'
+os.environ['NO_PROXY'] = 'localhost,127.0.0.1'
 import re
 import time
 import glob
-import shutil
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
