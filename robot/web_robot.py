@@ -6,6 +6,7 @@ import shutil
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -148,13 +149,13 @@ def executar_robot():
     os.makedirs(temp_download_dir)
 
     chrome_options = webdriver.ChromeOptions()
-    
-    # ARGUMENTOS DE SEGURANÇA E COMPATIBILIDADE DE RENDERIZAÇÃO
-    chrome_options.add_argument("--remote-allow-origins=*") # Permite a comunicação do Python com o Chrome
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--disable-features=VizDisplayCompositor") # Evita falhas de renderização gráfica no Windows 11
+    chrome_options.add_argument("--proxy-server=direct://")
+    chrome_options.add_argument("--proxy-bypass-list=*")  
+    chrome_options.add_argument("--remote-allow-origins=*")
+    chrome_options.add_argument("--disable-features=VizDisplayCompositor")
     
     prefs = {
         "download.default_directory": temp_download_dir,
@@ -165,8 +166,7 @@ def executar_robot():
     }
     chrome_options.add_experimental_option("prefs", prefs)
 
-    service = Service()
-    service.hostname = "127.0.0.1"
+    service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.maximize_window()
     
