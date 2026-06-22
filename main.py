@@ -9,16 +9,14 @@ def main():
     print("======================================================")
     
     while True:
-        # Executa o processador. Se houver 14 arquivos, ele os processa, limpa a pasta e faz o push.
+        # Se houver 14 arquivos e nenhum marcador de processado, consolida e cria o marcador
         processou = processar_planilhas_consolidadas()
         
         if processou:
             print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Ciclo concluído. Aguardando novos arquivos do próximo horário...")
-            # Aguarda 10 minutos de pausa de segurança antes de reiniciar a escuta ativa
-            time.sleep(600)
-        else:
-            # Aguarda 20 segundos antes de verificar novamente
-            time.sleep(20)
+            
+        # Verifica a pasta a cada 15 segundos para agilizar a exibição
+        time.sleep(15)
 
 if __name__ == "__main__":
     main()

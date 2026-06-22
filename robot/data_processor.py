@@ -2,67 +2,73 @@ import os
 import glob
 import pandas as pd
 import json
-import shutil
 import subprocess
 from datetime import datetime
 
 def processar_planilhas_consolidadas():
-    # Caminho do OneDrive corporativo conforme solicitado
+    # Caminho do OneDrive corporativo
     base_onedrive = r"C:\Users\cristian.souza\OneDrive - Nossa Senhora do Ó Participações S.A\Status de Comunicação"
     pasta_web = r"C:\Projetos em Python\Status de Comunicação\web"
     
-    # 1. Verifica se já existem os 14 arquivos sincronizados na raiz do OneDrive pelo Power Automate
-    arquivos_novos = glob.glob(os.path.join(base_onedrive, "*.xls*"))
+    # 1. Define o caminho exato do diretório da hora atual baseado na estrutura do Power Automate (2026\06\22\16h)
+    agora = datetime.now()
+    ano = agora.strftime("%Y")      # Ex: 2026
+    mes = agora.strftime("%m")      # Ex: 06
+    dia = agora.strftime("%d")      # Ex: 22
+    hora = agora.strftime("%Hh")    # Ex: 16h
     
-    if len(arquivos_novos) < 14:
-        # Se houver menos de 14 arquivos, aguarda o Power Automate terminar
+    pasta_hora_atual = os.path.join(base_onedrive, ano, mes, dia, hora)
+    
+    # Se a pasta da hora atual ainda não existe no OneDrive, aguarda o Power Automate criar
+    if not os.path.exists(pasta_hora_atual):
         return False
         
-    print(f"\nSincronização detectada! {len(arquivos_novos)} arquivos carregados na raiz do OneDrive pelo Power Automate.")
-    
-    # 2. Cria a estrutura cronológica para organizar e arquivar os arquivos brutos
-    agora = datetime.now()
-    ano = agora.strftime("%Y")
-    mes = agora.strftime("%m-%Y")
-    dia = agora.strftime("%d-%m-%y")
-    hora = agora.strftime("%Hh")
-    
-    pasta_arquivamento = os.path.join(base_onedrive, ano, mes, dia, hora)
-    os.makedirs(pasta_arquivamento, exist_ok=True)
-    
-    # 3. Move os arquivos novos da raiz para a pasta cronológica para limpar a raiz do OneDrive
-    for arquivo in arquivos_novos:
-        nome_arquivo = os.path.basename(arquivo)
-        destino = os.path.join(pasta_arquivamento, nome_arquivo)
-        shutil.move(arquivo, destino)
+    # Se o arquivo marcador já existir nesta pasta, significa que esta hora já foi processada e enviada
+    if os.path.exists(os.path.join(pasta_hora_atual, "processado.txt")):
+        return False
         
-    print(f"Arquivos consolidados movidos e organizados em: {pasta_arquivamento}")
+    # 2. Verifica se os 14 arquivos da hora atual já foram totalmente sincronizados na pasta
+    arquivos_novos = glob.glob(os.path.join(pasta_hora_atual, "*.xls*"))
+    if len(arquivos_novos) < 14:
+        # Aguarda até que todos os 14 arquivos estejam sincronizados
+        return False
+        
+    print(f"\nSincronização concluída! {len(arquivos_novos)} novos arquivos prontos em: {pasta_hora_atual}")
     
-    # 4. Faz a consolidação acumulada de todos os arquivos históricos do mês atual
+    # 3. Varre e consolida o histórico completo do mês atual (06-2026 / 06)
     pasta_mes_atual = os.path.join(base_onedrive, ano, mes)
     todos_arquivos = glob.glob(os.path.join(pasta_mes_atual, "**", "*.xls*"), recursive=True)
     
-    # Filtro rigoroso de segurança de caminhos
+    # Filtro de caminhos: aceita arquivos dentro de estruturas dia -> hora -> arquivos
     arquivos_historicos = []
     for f in todos_arquivos:
         pasta_pai = os.path.basename(os.path.dirname(f))
         pasta_avo = os.path.basename(os.path.dirname(os.path.dirname(f)))
-        if pasta_pai.endswith("h") and pasta_pai[:-1].isdigit() and "-" in pasta_avo:
+        # Evita processar o próprio marcador "processado.txt" e filtra caminhos válidos
+        if pasta_pai.endswith("h") and pasta_pai[:-1].isdigit() and pasta_avo.isdigit():
             arquivos_historicos.append(f)
             
     if not arquivos_historicos:
         print("Nenhum arquivo histórico foi localizado no diretório do mês atual.")
         return False
         
-    print(f"Consolidando histórico completo do mês ({len(arquivos_historicos)} planilhas)...")
+    print(f"Consolidando histórico acumulado de {len(arquivos_historicos)} planilhas...")
     lista_dfs = []
     
     for arquivo in arquivos_historicos:
         try:
             nome_arquivo = os.path.basename(arquivo)
-            nome_pasta_hora = os.path.basename(os.path.dirname(arquivo))
-            nome_pasta_dia = os.path.basename(os.path.dirname(os.path.dirname(arquivo)))
-            data_formatada = nome_pasta_dia.replace("-", "/")
+            
+            # Extrai os componentes do caminho de forma segura
+            caminho_partes = arquivo.split(os.sep)
+            # -2 é a hora (ex: 16h), -3 é o dia (ex: 22), -4 é o mês (ex: 06), -5 é o ano (ex: 2026)
+            hora_pasta = caminho_partes[-2]
+            dia_pasta = caminho_partes[-3]
+            mes_pasta = caminho_partes[-4]
+            ano_pasta = caminho_partes[-5]
+            
+            # Formata para dd/mm/aa (ex: 22/06/26)
+            data_formatada = f"{dia_pasta}/{mes_pasta}/{ano_pasta[2:]}"
             
             df = None
             try:
@@ -78,7 +84,7 @@ def processar_planilhas_consolidadas():
             
             if df is not None and not df.empty:
                 df["_data_pasta"] = data_formatada
-                df["_hora_pasta"] = nome_pasta_hora
+                df["_hora_pasta"] = hora_pasta
                 lista_dfs.append(df)
                 
         except Exception as e:
@@ -88,11 +94,9 @@ def processar_planilhas_consolidadas():
         print("Nenhum dado válido pôde ser extraído das planilhas.")
         return False
         
-    # Consolida os dados em um único DataFrame
     df_consolidado = pd.concat(lista_dfs, ignore_index=True)
     dados_dict = df_consolidado.to_dict(orient="records")
     
-    # Limpeza absoluta de NaNs antes de exportar
     for registro in dados_dict:
         for chave, valor in registro.items():
             if pd.isna(valor):
@@ -105,14 +109,23 @@ def processar_planilhas_consolidadas():
         
     print(f"Consolidação concluída. {len(dados_dict)} registros acumulados salvos em: {caminho_json}")
 
-    # 5. Sincronização automática com o GitHub (Netlify/Cloudflare)
+    # 4. Sincronização automática com o GitHub (Netlify/Cloudflare)
     try:
         print("Enviando dados atualizados para o GitHub...")
         subprocess.run(["git", "add", "web/dados.json"], check=True)
-        subprocess.run(["git", "commit", "-m", "Atualizacao automatica: consolidacao mensal"], check=True)
+        subprocess.run(["git", "commit", "-m", "Atualizacao automatica: consolidacao de dados"], check=True)
         subprocess.run(["git", "push"], check=True)
         print("GitHub atualizado! O Cloudflare Pages atualizará o site online em instantes.")
+        
+        # 5. Cria o arquivo marcador para sinalizar que este horário já foi finalizado
+        marker_file = os.path.join(pasta_hora_atual, "processado.txt")
+        with open(marker_file, "w") as f:
+            f.write("PROCESSADO")
+            
     except Exception as e:
         print(f"Não foi possível fazer o push automático para o GitHub: {e}")
         
     return True
+
+if __name__ == "__main__":
+    processar_planilhas_consolidadas()
