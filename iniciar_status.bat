@@ -10,7 +10,7 @@ echo.
 :: Navega até a pasta do projeto
 cd /d "C:\Projetos em Python\Status de Comunicação"
 
-:: Executa o orquestrador principal
-python main.py
+:: Executa o orquestrador usando explicitamente o Python do ambiente virtual do projeto
+".venv\Scripts\python.exe" main.py
 
 pause
