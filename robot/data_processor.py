@@ -13,20 +13,20 @@ def processar_planilhas_consolidadas():
     agora = datetime.now()
     ano = agora.strftime("%Y")      # Ex: 2026
     mes = agora.strftime("%m")      # Ex: 06
-    dia = agora.strftime("%d")      # Ex: 22
     
-    pasta_dia_atual = os.path.join(base_onedrive, ano, mes, dia)
+    pasta_mes_atual = os.path.join(base_onedrive, ano, mes)
     
-    # Se a pasta do dia ainda não existe no OneDrive, aguarda o Power Automate criar
-    if not os.path.exists(pasta_dia_atual):
+    # Se a pasta do mês atual ainda não existe no OneDrive, aguarda
+    if not os.path.exists(pasta_mes_atual):
         return False
         
-    # 1. Varre de forma inteligente todas as subpastas de horas do dia atual (ex: 14h, 15h, 16h...)
-    subpastas_hora = glob.glob(os.path.join(pasta_dia_atual, "*h"))
+    # 1. Varre de forma inteligente TODAS as subpastas de horas de TODOS os dias do mês atual (ex: 2026\06\*\*h)
+    # para encontrar se há alguma pasta pendente de processamento histórica ou atual
+    subpastas_hora = glob.glob(os.path.join(pasta_mes_atual, "*", "*h"))
     
     pasta_pendente = None
     for pasta in subpastas_hora:
-        nome_pasta = os.path.basename(pasta)
+        nome_pasta = os.path.basename(pasta) # Ex: "16h"
         # Valida se é um nome de pasta de hora legítimo (ex: "16h")
         if nome_pasta[:-1].isdigit():
             marcador = os.path.join(pasta, "processado.txt")
@@ -37,8 +37,8 @@ def processar_planilhas_consolidadas():
                 if len(arquivos_na_pasta) >= 14:
                     # Encontramos uma pasta pendente! Seleciona para processar imediatamente
                     pasta_pendente = pasta
-                    break # Processa uma por ciclo (no próximo ciclo de 15 segundos processará as outras se houver)
-                    
+                    break # Processa uma por ciclo de loop
+                        
     if not pasta_pendente:
         # Nenhuma pasta pendente de processamento foi localizada no momento
         return False
@@ -46,7 +46,6 @@ def processar_planilhas_consolidadas():
     print(f"\nSincronização pendente detectada na pasta: {pasta_pendente}")
     
     # 2. Varre e consolida o histórico completo do mês atual (06-2026 / 06)
-    pasta_mes_atual = os.path.join(base_onedrive, ano, mes)
     todos_arquivos = glob.glob(os.path.join(pasta_mes_atual, "**", "*.xls*"), recursive=True)
     
     # Filtro de caminhos: aceita arquivos dentro de estruturas dia -> hora -> arquivos
@@ -54,6 +53,7 @@ def processar_planilhas_consolidadas():
     for f in todos_arquivos:
         pasta_pai = os.path.basename(os.path.dirname(f))
         pasta_avo = os.path.basename(os.path.dirname(os.path.dirname(f)))
+        # Evita processar o próprio marcador "processado.txt" e filtra caminhos válidos
         if pasta_pai.endswith("h") and pasta_pai[:-1].isdigit() and pasta_avo.isdigit():
             arquivos_historicos.append(f)
             
@@ -70,6 +70,7 @@ def processar_planilhas_consolidadas():
             
             # Extrai os componentes do caminho de forma segura
             caminho_partes = arquivo.split(os.sep)
+            # -2 é a hora (ex: 16h), -3 é o dia (ex: 22), -4 é o mês (ex: 06), -5 é o ano (ex: 2026)
             hora_pasta = caminho_partes[-2]
             dia_pasta = caminho_partes[-3]
             mes_pasta = caminho_partes[-4]
