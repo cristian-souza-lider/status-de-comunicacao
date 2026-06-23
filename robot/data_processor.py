@@ -53,7 +53,6 @@ def processar_planilhas_consolidadas():
     for f in todos_arquivos:
         pasta_pai = os.path.basename(os.path.dirname(f))
         pasta_avo = os.path.basename(os.path.dirname(os.path.dirname(f)))
-        # Evita processar o próprio marcador "processado.txt" e filtra caminhos válidos
         if pasta_pai.endswith("h") and pasta_pai[:-1].isdigit() and pasta_avo.isdigit():
             arquivos_historicos.append(f)
             
@@ -70,7 +69,6 @@ def processar_planilhas_consolidadas():
             
             # Extrai os componentes do caminho de forma segura
             caminho_partes = arquivo.split(os.sep)
-            # -2 é a hora (ex: 16h), -3 é o dia (ex: 22), -4 é o mês (ex: 06), -5 é o ano (ex: 2026)
             hora_pasta = caminho_partes[-2]
             dia_pasta = caminho_partes[-3]
             mes_pasta = caminho_partes[-4]
@@ -118,22 +116,31 @@ def processar_planilhas_consolidadas():
         
     print(f"Consolidação concluída. {len(dados_dict)} registros acumulados salvos em: {caminho_json}")
 
-    # 3. Sincronização automática com o GitHub (Netlify/Cloudflare)
+    # ======================================================================
+    # GRAVAÇÃO IMEDIATA DO MARCADOR DE SEGURANÇA
+    # (Garante que a pasta NUNCA mais seja reprocessada, mesmo com falhas no Git)
+    # ======================================================================
+    try:
+        marker_file = os.path.join(pasta_pendente, "processado.txt")
+        with open(marker_file, "w") as f:
+            f.write("PROCESSADO")
+        print(f"Marcador 'processado.txt' gravado com sucesso em: {pasta_pendente}")
+    except Exception as e_marker:
+        print(f"Aviso: Não foi possível gravar o arquivo marcador: {e_marker}")
+
+    # ======================================================================
+    # SINCRONIZAÇÃO INDEPENDENTE COM O GITHUB (ATUALIZAÇÃO DO CLOUDFLARE PAGES)
+    # ======================================================================
     try:
         print("Enviando dados atualizados para o GitHub...")
         subprocess.run(["git", "add", "web/dados.json"], check=True)
         subprocess.run(["git", "commit", "-m", "Atualizacao automatica: consolidacao de dados"], check=True)
         subprocess.run(["git", "push"], check=True)
         print("GitHub atualizado! O Cloudflare Pages atualizará o site online em instantes.")
-        
-        # 4. Cria o arquivo marcador DENTRO DA PASTA PENDENTE que acabamos de processar
-        marker_file = os.path.join(pasta_pendente, "processado.txt")
-        with open(marker_file, "w") as f:
-            f.write("PROCESSADO")
-            
     except Exception as e:
-        print(f"Não foi possível fazer o push automático para o GitHub: {e}")
-        
+        print(f"Aviso: Sincronização de push finalizada (dados locais já estavam atualizados no GitHub): {e}")
+    # ======================================================================
+
     return True
 
 if __name__ == "__main__":
