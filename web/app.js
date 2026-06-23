@@ -591,19 +591,20 @@ function renderizarTabela() {
             badgeIntegracao = '<span class="text-amber-500 dark:text-amber-400 font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Falha na Integração</span>';
         }
 
+        // Ficha de Manutenção (Checkbox com Flag e Alerta de Aberta dinâmico)
         const keyFicha = `ficha_${item._veiculoFormatado}_${item._dataExportacao}`;
         const estadoFicha = localStorage.getItem(keyFicha) || '';
         
         const tdFicha = `
             <td class="align-middle">
                 <div class="flex items-center justify-center gap-2">
-                    <select class="select-ficha border border-slate-300 dark:border-slate-700 rounded p-1 text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-semibold focus:ring-1 focus:ring-indigo-500 outline-none select-input"
-                            data-veiculo="${item._veiculoFormatado}"
-                            data-data="${item._dataExportacao}">
-                        <option value="" ${estadoFicha === '' ? 'selected' : ''}>Selecione...</option>
-                        <option value="Aberta" ${estadoFicha === 'Aberta' ? 'selected' : ''}>Aberta</option>
-                    </select>
-                    ${estadoFicha === 'Aberta' ? '<span class="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 font-black text-[10px] animate-pulse uppercase tracking-wider"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Aberta</span>' : ''}
+                    <!-- Checkbox Simples (Flag) -->
+                    <input type="checkbox" class="chk-ficha cursor-pointer w-4 h-4 text-indigo-600 border-slate-300 dark:border-slate-700 rounded focus:ring-indigo-500 select-input"
+                           data-veiculo="${item._veiculoFormatado}"
+                           data-data="${item._dataExportacao}"
+                           ${estadoFicha === 'Aberta' ? 'checked' : ''}>
+                    <!-- Badge em formato de alerta, exibido dinamicamente se a flag for marcada -->
+                    ${estadoFicha === 'Aberta' ? '<span class="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 font-black text-[10px] animate-pulse uppercase tracking-wider flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i>Aberta</span>' : ''}
                 </div>
             </td>
         `;
@@ -626,21 +627,21 @@ function renderizarTabela() {
         corpo.appendChild(tr);
     });
 
-    document.querySelectorAll('.select-ficha').forEach(select => {
-        select.addEventListener('change', (e) => {
+    // Vincula escuta de eventos nas caixas de seleção da Ficha de Manutenção (Checkbox)
+    document.querySelectorAll('.chk-ficha').forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
             const v = e.target.getAttribute('data-veiculo');
             const d = e.target.getAttribute('data-data');
-            const value = e.target.value;
+            const marcado = e.target.checked; // Verifica se a flag está marcada
             const key = `ficha_${v}_${d}`;
             
-            if (value === "Aberta") {
+            if (marcado) {
                 localStorage.setItem(key, "Aberta");
             } else {
                 localStorage.removeItem(key);
             }
             // Sincroniza e redesenha os dados no KPI e na Tabela simultaneamente
             atualizarKPIs();
-            atualizarMiniCards();
             renderizarTabela(); 
         });
     });
