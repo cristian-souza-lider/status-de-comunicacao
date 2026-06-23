@@ -10,34 +10,43 @@ def processar_planilhas_consolidadas():
     base_onedrive = r"C:\Users\cristian.souza\OneDrive - Nossa Senhora do Ó Participações S.A\Status de Comunicação"
     pasta_web = r"C:\Projetos em Python\Status de Comunicação\web"
     
-    # 1. Define o caminho exato do diretório da hora atual baseado na estrutura do Power Automate (2026\06\22\16h)
+    # Declaração explícita no início do escopo para evitar qualquer erro de definição
+    pasta_pendente = None
+    
     agora = datetime.now()
     ano = agora.strftime("%Y")      # Ex: 2026
     mes = agora.strftime("%m")      # Ex: 06
-    dia = agora.strftime("%d")      # Ex: 22
-    hora = agora.strftime("%Hh")    # Ex: 16h
     
-    pasta_hora_atual = os.path.join(base_onedrive, ano, mes, dia, hora)
-    
-    # Se a pasta da hora atual ainda não existe no OneDrive, aguarda o Power Automate criar
-    if not os.path.exists(pasta_hora_atual):
-        return False
-        
-    # Se o arquivo marcador já existir nesta pasta, significa que esta hora já foi processada e enviada
-    if os.path.exists(os.path.join(pasta_hora_atual, "processado.txt")):
-        return False
-        
-    # 2. Verifica se existem arquivos na pasta para processar (pelo menos 1)
-    # Como o agendador agora acorda no minuto 15, garantimos que todos os arquivos disponíveis já foram sincronizados.
-    arquivos_novos = glob.glob(os.path.join(pasta_hora_atual, "*.xls*"))
-    if not arquivos_novos:
-        # Se a pasta estiver vazia ou não tiver nenhum arquivo de planilha, não processa
-        return False
-        
-    print(f"\nSincronização concluída! {len(arquivos_novos)} arquivos prontos em: {pasta_hora_atual}")
-    
-    # 3. Varre e consolida o histórico completo do mês atual (06-2026 / 06)
     pasta_mes_atual = os.path.join(base_onedrive, ano, mes)
+    
+    # Se a pasta do mês atual ainda não existe no OneDrive, aguarda
+    if not os.path.exists(pasta_mes_atual):
+        return False
+        
+    # 1. Varre todas as subpastas de horas de TODOS os dias do mês atual (ex: 2026\06\*\*h)
+    subpastas_hora = glob.glob(os.path.join(pasta_mes_atual, "*", "*h"))
+    
+    for pasta in subpastas_hora:
+        nome_pasta = os.path.basename(pasta) # Ex: "16h"
+        # Valida se é um nome de pasta de hora legítimo (ex: "16h")
+        if nome_pasta[:-1].isdigit():
+            marcador = os.path.join(pasta, "processado.txt")
+            # Se NÃO possuir o arquivo marcador de processado
+            if not os.path.exists(marcador):
+                # E se já possuir pelo menos os 1 arquivos completos carregados pelo Power Automate
+                arquivos_na_pasta = glob.glob(os.path.join(pasta, "*.xls*"))
+                if len(arquivos_na_pasta) >= 1:
+                    # Encontramos uma pasta pendente! Seleciona para processar imediatamente
+                    pasta_pendente = pasta
+                    break # Processa uma por ciclo de loop
+                        
+    if not pasta_pendente:
+        # Nenhuma pasta pendente de processamento foi localizada no momento
+        return False
+        
+    print(f"\nSincronização pendente detectada na pasta: {pasta_pendente}")
+    
+    # 2. Varre e consolida o histórico completo do mês atual (06-2026 / 06)
     todos_arquivos = glob.glob(os.path.join(pasta_mes_atual, "**", "*.xls*"), recursive=True)
     
     # Filtro de caminhos: aceita arquivos dentro de estruturas dia -> hora -> arquivos
@@ -45,7 +54,6 @@ def processar_planilhas_consolidadas():
     for f in todos_arquivos:
         pasta_pai = os.path.basename(os.path.dirname(f))
         pasta_avo = os.path.basename(os.path.dirname(os.path.dirname(f)))
-        # Evita processar o próprio marcador "processado.txt" e filtra caminhos válidos
         if pasta_pai.endswith("h") and pasta_pai[:-1].isdigit() and pasta_avo.isdigit():
             arquivos_historicos.append(f)
             
@@ -62,7 +70,6 @@ def processar_planilhas_consolidadas():
             
             # Extrai os componentes do caminho de forma segura
             caminho_partes = arquivo.split(os.sep)
-            # -2 é a hora (ex: 16h), -3 é o dia (ex: 22), -4 é o mês (ex: 06), -5 é o ano (ex: 2026)
             hora_pasta = caminho_partes[-2]
             dia_pasta = caminho_partes[-3]
             mes_pasta = caminho_partes[-4]
@@ -122,7 +129,7 @@ def processar_planilhas_consolidadas():
         print(f"Aviso: Não foi possível gravar o arquivo marcador: {e_marker}")
 
     # ======================================================================
-    # SINCRONIZAÇÃO INDEPENDENTE COM O GITHUB
+    # SINCRONIZAÇÃO INDEPENDENTE COM O GITHUB (ATUALIZAÇÃO DO CLOUDFLARE PAGES)
     # ======================================================================
     try:
         print("Enviando dados atualizados para o GitHub...")
