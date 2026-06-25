@@ -41,6 +41,7 @@ const segmentosEmpresa = {
 // Inicialização da Página (DOMContentLoaded)
 document.addEventListener('DOMContentLoaded', () => {
     inicializarTema();
+    limparFichasAntigas(); // --- MELHORIA II: Expurgo de registros antigos locais
     carregarDados();
 
     // Eventos Gerais
@@ -160,6 +161,36 @@ function sincronizarIconeFullscreen() {
     }
 }
 
+// --- MELHORIA II: Limpeza automática de chaves do LocalStorage com mais de 7 dias ---
+function limparFichasAntigas() {
+    const hoje = new Date();
+    const seteDiasEmMs = 7 * 24 * 60 * 60 * 1000;
+    
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+        const chave = localStorage.key(i);
+        if (chave && chave.startsWith("ficha_")) {
+            const partes = chave.split("_");
+            if (partes.length >= 3) {
+                const dataStr = partes[2]; // DD/MM/AA ou DD/MM/YYYY
+                const partesData = dataStr.split("/");
+                if (partesData.length === 3) {
+                    let dia = parseInt(partesData[0]);
+                    let mes = parseInt(partesData[1]) - 1;
+                    let ano = parseInt(partesData[2]);
+                    if (ano < 100) ano += 2000;
+                    
+                    const dataFicha = new Date(ano, mes, dia);
+                    if (!isNaN(dataFicha.getTime())) {
+                        if (hoje - dataFicha > seteDiasEmMs) {
+                            localStorage.removeItem(chave);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 // Busca as informações do dados.json
 function carregarDados() {
     const btn = document.getElementById('btn-atualizar');
@@ -197,8 +228,10 @@ function carregarDados() {
 // Higieniza e padroniza as colunas de dados
 function processarDadosGerais() {
     let maiorDataObj = null;
-    let dataReferenciaStr = "21/06/2026"; 
-    let horaReferenciaStr = "12:00";
+    
+    // --- MELHORIA V: Atribuição de referências dinâmicas a partir das telemetrias ---
+    let dataReferenciaStr = ""; 
+    let horaReferenciaStr = "";
 
     dadosOriginais.forEach(item => {
         const campoData = item["Última Transmissão"] || item["Último GPS"];
@@ -207,7 +240,11 @@ function processarDadosGerais() {
             if (partes.length === 2) {
                 const dPartes = partes[0].split("/");
                 const tPartes = partes[1].split(":");
-                const dObj = new Date(dPartes[2], dPartes[1] - 1, dPartes[0], tPartes[0], tPartes[1]);
+                
+                let anoCompleto = parseInt(dPartes[2]);
+                if (anoCompleto < 100) anoCompleto += 2000;
+
+                const dObj = new Date(anoCompleto, dPartes[1] - 1, dPartes[0], tPartes[0], tPartes[1]);
                 if (!maiorDataObj || dObj > maiorDataObj) {
                     maiorDataObj = dObj;
                     dataReferenciaStr = partes[0];
@@ -217,9 +254,16 @@ function processarDadosGerais() {
         }
     });
 
+    // Fallback dinâmico caso as telemetrias retornem nulas ou vazias
+    if (!maiorDataObj) {
+        const hoje = new Date();
+        dataReferenciaStr = `${hoje.getDate().toString().padStart(2, '0')}/${(hoje.getMonth() + 1).toString().padStart(2, '0')}/${hoje.getFullYear()}`;
+        horaReferenciaStr = `${hoje.getHours().toString().padStart(2, '0')}:${hoje.getMinutes().toString().padStart(2, '0')}`;
+    }
+
     const dPartes = dataReferenciaStr.split("/");
-    const exportDataFormatada = `${dPartes[0]}/${dPartes[1]}/${dPartes[2].substring(2)}`; // dd/mm/aa
-    const exportHoraFormatada = `${horaReferenciaStr.split(":")[0]}h`; // hh + 'h'
+    const exportDataFormatada = `${dPartes[0]}/${dPartes[1]}/${dPartes[2].length === 4 ? dPartes[2].substring(2) : dPartes[2]}`; // dd/mm/aa
+    const exportHoraFormatada = `${horaReferenciaStr.split(":")[0]}h`;
 
     dadosProcessados = dadosOriginais.map(item => {
         const segmentoOrigem = item["Empresa"] || "";
@@ -598,12 +642,10 @@ function renderizarTabela() {
         const tdFicha = `
             <td class="align-middle">
                 <div class="flex items-center justify-center gap-2">
-                    <!-- Checkbox Simples (Flag) -->
                     <input type="checkbox" class="chk-ficha cursor-pointer w-4 h-4 text-indigo-600 border-slate-300 dark:border-slate-700 rounded focus:ring-indigo-500 select-input"
                            data-veiculo="${item._veiculoFormatado}"
                            data-data="${item._dataExportacao}"
                            ${estadoFicha === 'Aberta' ? 'checked' : ''}>
-                    <!-- Badge em formato de alerta, exibido dinamicamente se a flag for marcada -->
                     ${estadoFicha === 'Aberta' ? '<span class="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 font-black text-[10px] animate-pulse uppercase tracking-wider flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i>Aberta</span>' : ''}
                 </div>
             </td>
@@ -621,7 +663,7 @@ function renderizarTabela() {
             <td class="text-xs">${badgeGPS}</td>
             <td class="text-xs font-semibold ${item["Estado Validador"] === 'Bloqueado' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-300'}">${item["Estado Validador"] || ''}</td>
             <td class="text-xs font-mono">${item["Hora estado validador"] || ''}</td>
-            <td class="text-xs text-center">${badgeIntegracao}</td> <!-- <-- ADICIONE ESTA LINHA DA INTEGRAÇÃO AQUI -->
+            <td class="text-xs text-center">${badgeIntegracao}</td>
             ${tdFicha}
         `;
         corpo.appendChild(tr);
@@ -632,7 +674,7 @@ function renderizarTabela() {
         checkbox.addEventListener('change', (e) => {
             const v = e.target.getAttribute('data-veiculo');
             const d = e.target.getAttribute('data-data');
-            const marcado = e.target.checked; // Verifica se a flag está marcada
+            const marcado = e.target.checked; 
             const key = `ficha_${v}_${d}`;
             
             if (marcado) {
@@ -640,7 +682,6 @@ function renderizarTabela() {
             } else {
                 localStorage.removeItem(key);
             }
-            // Sincroniza e redesenha os dados no KPI e na Tabela simultaneamente
             atualizarKPIs();
             renderizarTabela(); 
         });
@@ -695,7 +736,6 @@ function atualizarMiniCards() {
     const container = document.getElementById('container-mini-cards');
     if (!container) return;
 
-    // Inicialização fixa das 5 não conformidades oficiais com 0
     const contagens = {
         "Sem Transmissão": 0,
         "Sem GPS Válido": 0,
@@ -704,7 +744,6 @@ function atualizarMiniCards() {
         "Problema de Carga de Ponto": 0
     };
 
-    // Incrementa as contagens baseadas nos dados filtrados ativos na tela
     dadosFiltrados.forEach(item => {
         const nc = item._naoConformidadeLimpa;
         if (nc && nc !== "") {
@@ -712,28 +751,26 @@ function atualizarMiniCards() {
         }
     });
 
-    // Título interno da seção de ocorrências
     container.innerHTML = '<span class="text-slate-500 dark:text-slate-400 uppercase text-[9px] font-black mr-2 tracking-wider flex-shrink-0">Indicador de Não Conformidades: </span>';
 
-    // Cria as tags estruturadas com cores exclusivas para cada um dos 5 tipos
     Object.entries(contagens).forEach(([nome, qtd]) => {
         let corClasse = "";
         
         switch (nome) {
             case "Veículos Sem Transmissão":
-                corClasse = "bg-white dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-900"; // Vermelho
+                corClasse = "bg-white dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-900"; 
                 break;
             case "Veículos Sem GPS Válido":
-                corClasse = "bg-white dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-900"; // Amarelo
+                corClasse = "bg-white dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-900"; 
                 break;
             case "Veículos Sem AVL":
-                corClasse = "bg-white dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-900"; // Indigo/Azul
+                corClasse = "bg-white dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-900"; 
                 break;
             case "Veículos Sem Processar Pontos de Controle":
-                corClasse = "bg-white dark:bg-purple-950/20 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-900"; // Roxo
+                corClasse = "bg-white dark:bg-purple-950/20 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-900"; 
                 break;
             case "Veículos com Problema de Carga de Ponto":
-                corClasse = "bg-white dark:bg-teal-950/20 text-teal-700 dark:text-teal-400 border-teal-300 dark:border-teal-900"; // Ciano/Verde
+                corClasse = "bg-white dark:bg-teal-950/20 text-teal-700 dark:text-teal-400 border-teal-300 dark:border-teal-900"; 
                 break;
             default:
                 corClasse = "bg-white dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700"; 
@@ -757,7 +794,6 @@ function atualizarOpcoesHora() {
     
     selectHora.innerHTML = '<option value="">Todos</option>';
     
-    // Se houver uma data selecionada, filtra as horas correspondentes. Caso contrário, traz todas.
     let dadosFiltradosPorData = dadosProcessados;
     if (selectData.value) {
         dadosFiltradosPorData = dadosProcessados.filter(d => d._dataExportacao === selectData.value);
@@ -765,7 +801,6 @@ function atualizarOpcoesHora() {
     
     const horasUnicas = [...new Set(dadosFiltradosPorData.map(d => d._horaExportacao).filter(Boolean))];
     
-    // Ordena as horas numericamente (ex: 16h, 17h, 18h, etc.)
     horasUnicas.sort((a, b) => {
         const numA = parseInt(a.replace('h', ''));
         const numB = parseInt(b.replace('h', ''));
@@ -776,7 +811,6 @@ function atualizarOpcoesHora() {
         selectHora.innerHTML += `<option value="${h}">${h}</option>`;
     });
 
-    // Se a hora anteriormente selecionada ainda for válida na nova data, preserva-a
     if (horasUnicas.includes(horaSelecionada)) {
         selectHora.value = horaSelecionada;
     } else {
@@ -804,10 +838,9 @@ function atualizarGraficos() {
     const countEquipamento = agruparEContar('Fab');
     const countFaixa = agruparEContar('_horaExportacao');
 
-    // Auxiliar de Ordenação Estrita de Objetos (Evita re-ordenação de chaves numéricas do JS Engine)
     const obterDadosOrdenados = (counts, limite = null) => {
         const itensOrdenados = Object.entries(counts)
-            .sort((a, b) => b[1] - a[1]); // Descendente (do maior para o menor)
+            .sort((a, b) => b[1] - a[1]); 
         
         const fatiados = limite ? itensOrdenados.slice(0, limite) : itensOrdenados;
         
@@ -817,13 +850,11 @@ function atualizarGraficos() {
         };
     };
 
-    // Extrai listas ordenadas de rótulos e valores de forma independente do objeto
     const dadosEmpresa = obterDadosOrdenados(countEmpresa);
     const dadosSegmento = obterDadosOrdenados(countSegmento);
-    const dadosVeiculo = obterDadosOrdenados(countVeiculo, 5); // Estrito TOP 5 ordenado do maior para o menor
+    const dadosVeiculo = obterDadosOrdenados(countVeiculo, 5); 
     const dadosEquipamento = obterDadosOrdenados(countEquipamento);
 
-    // Destrói os gráficos antigos de forma limpa antes de redesenhar
     Object.keys(charts).forEach(key => {
         if (charts[key]) {
             charts[key].destroy();
@@ -834,40 +865,37 @@ function atualizarGraficos() {
     const gridColor = isDark ? '#1f2937' : '#cbd5e1'; 
     const textColor = isDark ? '#94a3b8' : '#0f172a'; 
 
-    // Helper unificado para construir gráficos de Barras Horizontais com números posicionados de forma inteligente
     const criarGraficoBarraHorizontal = (canvasId, labels, data, corBarra, maxBarSize = 20) => {
         return new Chart(document.getElementById(canvasId), {
             type: 'bar',
             data: {
-                labels: labels, // Vetor de rótulos pré-ordenado
+                labels: labels, 
                 datasets: [{
-                    data: data, // Vetor de valores pré-ordenado
+                    data: data, 
                     backgroundColor: corBarra,
                     borderRadius: 3,
                     maxBarThickness: maxBarSize
                 }]
             },
             options: {
-                indexAxis: 'y', // Direção horizontal
+                indexAxis: 'y', 
                 responsive: true,
                 maintainAspectRatio: false,
                 layout: {
                     padding: {
                         left: 10,
-                        right: 25 // Espaço extra à direita para o rótulo de dados interno não cortar
+                        right: 25 
                     }
                 },
                 plugins: { 
                     legend: { display: false },
                     datalabels: {
-                        // Alinhamento inteligente: valores menores que 10 vão para fora, maiores ficam dentro
                         anchor: 'end',
                         align: (context) => {
                             const val = context.dataset.data[context.dataIndex];
                             return val < 10 ? 'end' : 'start';
                         },
                         offset: 4,
-                        // Cor inteligente: se estiver fora (valor pequeno), usa a cor padrão do tema, se estiver dentro usa branco
                         color: (context) => {
                             const val = context.dataset.data[context.dataIndex];
                             if (val < 10) {
@@ -893,13 +921,11 @@ function atualizarGraficos() {
         });
     };
 
-    // Gráficos de Empresa a Equipamento agora renderizados como Barras Horizontais com valores internos/externos
     charts.empresa = criarGraficoBarraHorizontal('chart-empresa', dadosEmpresa.labels, dadosEmpresa.data, '#10b981', 16); 
     charts.segmento = criarGraficoBarraHorizontal('chart-segmento', dadosSegmento.labels, dadosSegmento.data, '#6366f1', 20); 
-    charts.veiculo = criarGraficoBarraHorizontal('chart-veiculo', dadosVeiculo.labels, dadosVeiculo.data, '#3b82f6', 20); // Azul (Top 5 Ordenado)
+    charts.veiculo = criarGraficoBarraHorizontal('chart-veiculo', dadosVeiculo.labels, dadosVeiculo.data, '#3b82f6', 20); 
     charts.equipamento = criarGraficoBarraHorizontal('chart-equipamento', dadosEquipamento.labels, dadosEquipamento.data, '#14b8a6', 20); 
 
-    // Gráfico 5: Faixa Horária (Exibe rótulos sobre os pontos)
     const labelsFaixa = Object.keys(countFaixa).sort();
     const dataFaixa = labelsFaixa.map(l => countFaixa[l]);
 
@@ -922,7 +948,7 @@ function atualizarGraficos() {
             plugins: { 
                 legend: { display: false },
                 datalabels: { 
-                    display: true, // Exibe o valor do ponto para acompanhamento
+                    display: true, 
                     color: textColor,
                     align: 'top',
                     font: { weight: 'bold', size: 10 }
