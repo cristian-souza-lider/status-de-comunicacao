@@ -105,7 +105,12 @@ def processar_planilhas_consolidadas():
         
     df_consolidado = pd.concat(lista_dfs, ignore_index=True)
     
-    # --- REDUÇÃO DE TAMANHO: Seleciona apenas as colunas consumidas pelo app.js ---
+    # --- OTIMIZAÇÃO 1: Remoção de duplicidades redundantes ---
+    subset_duplicados = [col for col in ["Prefixo", "_data_pasta", "_hora_pasta"] if col in df_consolidado.columns]
+    if subset_duplicados:
+        df_consolidado = df_consolidado.drop_duplicates(subset=subset_duplicados)
+    
+    # Seleciona apenas as colunas consumidas pelo app.js
     colunas_essenciais = [
         "Empresa", "Linha", "Prefixo", "Situação", "Fab", "Status", 
         "Não Conformidade", "Status GPS", "Estado Validador", 
@@ -118,10 +123,27 @@ def processar_planilhas_consolidadas():
     
     dados_totais = df_consolidado.to_dict(orient="records")
     
-    # Filtro temporal dos últimos 7 dias
-    dados_filtrados = []
-    limite_data = agora - timedelta(days=7)
+    # --- OTIMIZAÇÃO 2: Determinação dinâmica da data limite (Últimos 3 Dias com base nos dados) ---
+    datas_encontradas = []
+    for registro in dados_totais:
+        data_str = registro.get("_data_pasta")
+        if data_str:
+            try:
+                partes = data_str.split("/")
+                dia_reg = int(partes[0])
+                mes_reg = int(partes[1])
+                ano_reg = int(partes[2])
+                if ano_reg < 100:
+                    ano_reg += 2000
+                datas_encontradas.append(datetime(ano_reg, mes_reg, dia_reg))
+            except Exception:
+                continue
+                
+    max_data = max(datas_encontradas) if datas_encontradas else agora
+    limite_data = max_data - timedelta(days=3)
+    print(f"Filtrando dados a partir de: {limite_data.strftime('%d/%m/%Y')} (Referência mais recente: {max_data.strftime('%d/%m/%Y')})")
     
+    dados_filtrados = []
     for registro in dados_totais:
         data_str = registro.get("_data_pasta")
         if data_str:
@@ -147,11 +169,11 @@ def processar_planilhas_consolidadas():
     os.makedirs(pasta_web, exist_ok=True)
     caminho_json = os.path.join(pasta_web, "dados.json")
     
-    # --- REDUÇÃO DE TAMANHO: Salva o JSON minificado (sem identação/espaços em branco) ---
+    # Salva o JSON minificado (sem identação/espaços em branco)
     with open(caminho_json, "w", encoding="utf-8") as f:
         json.dump(dados_filtrados, f, ensure_ascii=False, separators=(',', ':'))
         
-    print(f"Consolidação concluída. {len(dados_filtrados)} registros dos últimos 7 dias salvos em: {caminho_json}")
+    print(f"Consolidação concluída. {len(dados_filtrados)} registros dos últimos 3 dias salvos em: {caminho_json}")
 
     # Gravação do arquivo marcador
     try:
